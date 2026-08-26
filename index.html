@@ -1,0 +1,1927 @@
+<!DOCTYPE html>
+<html lang="ru" class="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Мой Трекер Контента</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    transitionProperty: { 'height': 'height', 'spacing': 'margin, padding' },
+                    colors: {
+                        ytGreen: '#86b32d',
+                        ytGreenHover: '#98c835'
+                    },
+                    maxWidth: {
+                        '8xl': '1600px'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+        body { font-family: 'Inter', sans-serif; transition: background-color 0.3s ease, color 0.3s ease; }
+        .card-transition { transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out, border-color 0.2s; }
+        .card-transition:hover { transform: translateY(-5px); }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        .admin-only { display: none !important; }
+        body.is-admin .admin-only { display: flex !important; }
+        body.is-admin .admin-only.block-element { display: block !important; }
+        body.is-admin .admin-only.inline-block-element { display: inline-block !important; }
+
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        .dark ::-webkit-scrollbar-thumb { background: #475569; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        
+        body.modal-open { overflow: hidden; }
+        
+        .tab-btn { border-bottom: 2px solid transparent; }
+        .tab-btn.active { color: #86b32d; border-bottom-color: #86b32d; }
+        
+        .category-radio:checked + div { background-color: #374151; color: white; border-color: #4b5563; }
+        .dark .category-radio:checked + div { background-color: #4b5563; color: white; border-color: #6b7280; }
+        
+        .priority-star.active { color: #eab308; }
+        
+        .custom-select-container { position: relative; width: 100%; }
+        .custom-select-trigger {
+            display: flex; justify-content: space-between; align-items: center;
+            width: 100%; padding: 0.5rem 1rem; cursor: pointer;
+            border-radius: 0.75rem; transition: all 0.2s;
+        }
+        .custom-select-dropdown {
+            position: absolute; top: 100%; left: 0; right: 0;
+            margin-top: 0.25rem; z-index: 50;
+            border-radius: 0.75rem; overflow-y: auto; max-height: 250px;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            display: none; scrollbar-width: thin;
+        }
+        .custom-select-dropdown.show { display: block; }
+        .custom-select-option { padding: 0.5rem 1rem; cursor: pointer; transition: background-color 0.1s; }
+        
+        .custom-select-trigger { background-color: #f9fafb; border: 1px solid #e5e7eb; color: #1f2937; }
+        .dark .custom-select-trigger { background-color: #151718; border: 1px solid #374151; color: white; }
+        .custom-select-trigger:hover { border-color: #86b32d; }
+        .custom-select-dropdown { background-color: #ffffff; border: 1px solid #e5e7eb; }
+        .dark .custom-select-dropdown { background-color: #1e1f22; border: 1px solid #374151; }
+        .custom-select-option:hover { background-color: #f3f4f6; }
+        .dark .custom-select-option:hover { background-color: #2a2c2f; }
+        .custom-select-option.selected { background-color: #86b32d; color: white; border-radius: 0.5rem; margin: 0.25rem; }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800 dark:bg-[#1a1c1e] dark:text-gray-100 pb-10 min-h-screen">
+
+<header class="bg-white dark:bg-[#222426] border-b border-gray-200 dark:border-gray-800 sticky top-0 z-40 shadow-sm">
+    <div class="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8 h-auto sm:h-16 flex flex-col sm:flex-row items-center justify-between gap-4 py-3 sm:py-0">
+        
+        <!-- Logo and Tabs -->
+        <div class="flex items-center gap-6 w-full sm:w-auto overflow-x-auto hide-scrollbar shrink-0">
+            <div class="flex items-center gap-2 font-black text-xl tracking-tight text-gray-900 dark:text-white shrink-0">
+                <i class="ph-fill ph-popcorn text-ytGreen text-2xl"></i>
+                Трекер
+            </div>
+            
+            <div class="flex gap-4 font-bold text-sm text-gray-500 dark:text-gray-400 h-full pt-1 shrink-0">
+                <button onclick="switchTab('main')" id="tabMain" class="tab-btn active hover:text-gray-800 dark:hover:text-gray-200 transition-colors pb-3 sm:pb-0 h-full flex items-center gap-1.5">
+                    Кино / Игры
+                </button>
+                <button onclick="switchTab('youtube')" id="tabYoutube" class="tab-btn hover:text-gray-800 dark:hover:text-gray-200 transition-colors pb-3 sm:pb-0 h-full flex items-center gap-1.5">
+                    Видосы
+                </button>
+            </div>
+        </div>
+
+        <!-- Global Search -->
+        <div class="w-full max-w-2xl relative flex-shrink">
+            <i class="ph-bold ph-magnifying-glass absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+            <input type="text" id="globalSearchInput" placeholder="Поиск..." class="w-full pl-11 pr-4 py-2 bg-gray-100 dark:bg-[#151718] border border-transparent focus:border-gray-300 dark:focus:border-gray-700 rounded-xl focus:ring-0 dark:text-white outline-none transition-all text-sm font-medium placeholder-gray-500">
+        </div>
+
+        <!-- Header Actions -->
+        <div class="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end shrink-0">
+            <!-- Socials and Theme -->
+            <div class="flex items-center gap-2 text-gray-400">
+                <div id="socialLinksContainer" class="flex items-center gap-1"></div>
+                <button onclick="toggleTheme()" class="p-2 hover:text-yellow-500 transition-colors rounded-lg" title="Переключить тему"><i id="themeIcon" class="ph-fill ph-moon text-lg"></i></button>
+                <button onclick="openPasswordModal()" id="loginBtn" class="p-2 hover:text-ytGreen transition-colors rounded-lg" title="Вход"><i class="ph-fill ph-lock-key text-lg"></i></button>
+                <button onclick="openSettingsModal()" class="admin-only p-2 hover:text-white transition-colors rounded-lg"><i class="ph-fill ph-gear text-lg"></i></button>
+                <button onclick="logout()" id="logoutBtn" class="admin-only p-2 hover:text-red-500 transition-colors rounded-lg"><i class="ph-fill ph-sign-out text-lg"></i></button>
+            </div>
+
+            <!-- Action Buttons (Main & Youtube) -->
+            <!-- FIX: Added ID 'mainActionButtons' and 'youtubeActionButtons' to fix JS error on tab switch -->
+            <div id="mainActionButtons" class="admin-only items-center gap-2">
+                <button onclick="openModal()" id="mainAddBtn" class="bg-ytGreen hover:bg-ytGreenHover text-white px-4 py-1.5 rounded-xl text-sm font-bold shadow-md transition-colors whitespace-nowrap">
+                    Новая запись
+                </button>
+            </div>
+            
+            <div id="youtubeActionButtons" class="admin-only items-center gap-2 hidden">
+                <button onclick="openYoutubeModal()" id="ytAddBtn" class="bg-ytGreen hover:bg-ytGreenHover text-white px-4 py-1.5 rounded-xl text-sm font-bold shadow-md transition-colors whitespace-nowrap uppercase tracking-wider flex items-center gap-1">
+                    Добавить видео <i class="ph-fill ph-caret-right text-base"></i>
+                </button>
+            </div>
+        </div>
+
+    </div>
+</header>
+
+<div class="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+
+    <!-- MAIN CONTAINER (Movies, Games) -->
+    <div id="mainContainer">
+        <!-- Filters Row -->
+        <div class="flex flex-col xl:flex-row gap-4 justify-between items-start xl:items-center mb-6">
+            <div class="flex gap-2 overflow-x-auto hide-scrollbar w-full xl:w-auto pb-1">
+                <button onclick="setFilter('type', 'all')" class="filter-btn type-filter active px-4 py-1.5 rounded-xl text-xs sm:text-sm font-bold whitespace-nowrap bg-ytGreen/20 text-ytGreen dark:bg-ytGreen/20 dark:text-ytGreen" data-value="all">Все форматы</button>
+                <button onclick="setFilter('type', 'movie')" class="filter-btn type-filter px-4 py-1.5 rounded-xl text-xs sm:text-sm font-bold whitespace-nowrap bg-white text-gray-600 border border-gray-200 hover:bg-gray-50 dark:bg-[#222426] dark:border-gray-800 dark:text-gray-300 dark:hover:bg-[#2a2c2f]" data-value="movie">Фильмы</button>
+                <button onclick="setFilter('type', 'series')" class="filter-btn type-filter px-4 py-1.5 rounded-xl text-xs sm:text-sm font-bold whitespace-nowrap bg-white text-gray-600 border border-gray-200 hover:bg-gray-50 dark:bg-[#222426] dark:border-gray-800 dark:text-gray-300 dark:hover:bg-[#2a2c2f]" data-value="series">Сериалы</button>
+                <button onclick="setFilter('type', 'cartoon')" class="filter-btn type-filter px-4 py-1.5 rounded-xl text-xs sm:text-sm font-bold whitespace-nowrap bg-white text-gray-600 border border-gray-200 hover:bg-gray-50 dark:bg-[#222426] dark:border-gray-800 dark:text-gray-300 dark:hover:bg-[#2a2c2f]" data-value="cartoon">Мультфильмы</button>
+                <button onclick="setFilter('type', 'game')" class="filter-btn type-filter px-4 py-1.5 rounded-xl text-xs sm:text-sm font-bold whitespace-nowrap bg-white text-gray-600 border border-gray-200 hover:bg-gray-50 dark:bg-[#222426] dark:border-gray-800 dark:text-gray-300 dark:hover:bg-[#2a2c2f]" data-value="game">Игры</button>
+            </div>
+
+            <div class="flex gap-2 overflow-x-auto hide-scrollbar w-full xl:w-auto pb-1 items-center">
+                <button onclick="toggleBestFilter()" id="btnBest" class="flex items-center gap-1.5 px-4 py-1.5 rounded-xl font-bold text-xs sm:text-sm transition-all text-yellow-600 bg-yellow-50 border border-yellow-200 hover:bg-yellow-100 dark:bg-[#222426] dark:border-yellow-700/30 dark:text-yellow-500 whitespace-nowrap">
+                    <i class="ph-fill ph-star"></i> Лучшее
+                </button>
+                <div class="w-px h-6 bg-gray-300 dark:bg-gray-700 mx-1"></div>
+                <button onclick="setFilter('status', 'all')" class="filter-btn status-filter active px-4 py-1.5 rounded-xl text-xs sm:text-sm font-bold whitespace-nowrap bg-ytGreen/20 text-ytGreen dark:bg-ytGreen/20 dark:text-ytGreen" data-value="all">Любой статус</button>
+                <button onclick="setFilter('status', 'watched')" class="filter-btn status-filter px-4 py-1.5 rounded-xl text-xs sm:text-sm font-bold whitespace-nowrap bg-white text-gray-600 border border-gray-200 hover:bg-gray-50 dark:bg-[#222426] dark:border-gray-800 dark:text-gray-300 dark:hover:bg-[#2a2c2f]" data-value="watched">Пройдено</button>
+                <button onclick="setFilter('status', 'planning')" class="filter-btn status-filter px-4 py-1.5 rounded-xl text-xs sm:text-sm font-bold whitespace-nowrap bg-white text-gray-600 border border-gray-200 hover:bg-gray-50 dark:bg-[#222426] dark:border-gray-800 dark:text-gray-300 dark:hover:bg-[#2a2c2f]" data-value="planning">В планах</button>
+                <button onclick="toggleAdvancedFilters()" class="ml-auto flex items-center justify-center p-1.5 rounded-xl font-medium text-sm transition-all text-gray-600 bg-white border border-gray-200 hover:bg-gray-50 dark:bg-[#222426] dark:border-gray-800 dark:text-gray-300 dark:hover:bg-[#2a2c2f]">
+                    <i class="ph-bold ph-sliders-horizontal text-lg"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Advanced Filters -->
+        <div id="advancedFilters" class="hidden grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6 p-4 bg-white dark:bg-[#222426] border border-gray-200 dark:border-gray-800 rounded-2xl">
+            <div>
+                <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5 ml-1">Жанр</label>
+                <div class="custom-select-container">
+                    <div class="custom-select-trigger" onclick="toggleCustomSelect(event, 'customGenreSelect')">
+                        <span id="customGenreSelectLabel">Всё</span>
+                        <i class="ph-bold ph-caret-down text-gray-400"></i>
+                    </div>
+                    <div id="customGenreSelect" class="custom-select-dropdown">
+                    </div>
+                </div>
+            </div>
+            <div>
+                <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5 ml-1">Режиссер / Студия</label>
+                <input type="text" id="filterDirector" placeholder="Любой..." class="w-full px-4 py-2 bg-gray-50 dark:bg-[#151718] border border-gray-200 dark:border-gray-700 rounded-xl text-sm font-medium dark:text-white focus:ring-1 focus:ring-ytGreen outline-none transition-colors">
+            </div>
+            <div>
+                <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5 ml-1">Год</label>
+                <input type="number" id="filterYear" placeholder="Например: 2023" class="w-full px-4 py-2 bg-gray-50 dark:bg-[#151718] border border-gray-200 dark:border-gray-700 rounded-xl text-sm font-medium dark:text-white focus:ring-1 focus:ring-ytGreen outline-none transition-colors">
+            </div>
+        </div>
+
+        <!-- Content Grid -->
+        <div id="contentGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4 sm:gap-6 scroll-mt-24">
+        </div>
+
+        <!-- Pagination -->
+        <div id="paginationControls" class="hidden flex-wrap justify-center items-center gap-3 mt-8 pb-4">
+            <button id="prevPageBtn" onclick="changePage(-1)" class="px-4 py-2 bg-white dark:bg-[#222426] rounded-xl shadow-sm border border-gray-200 dark:border-gray-800 disabled:opacity-40 font-bold text-sm hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors flex items-center gap-2">
+                <i class="ph-bold ph-caret-left"></i> Назад
+            </button>
+            <span id="pageInfo" class="text-sm font-bold text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-[#151718] px-4 py-2 rounded-xl hidden sm:block">Стр 1 / 1</span>
+            <div class="flex items-center gap-1.5 bg-white dark:bg-[#222426] px-3 py-1.5 rounded-xl border border-gray-200 dark:border-gray-800">
+                <span class="text-sm font-bold text-gray-400">Стр:</span>
+                <input type="number" id="pageJumpInput" min="1" class="w-12 bg-transparent text-center text-sm font-bold dark:text-white outline-none">
+                <button onclick="jumpToPage()" class="text-gray-400 hover:text-ytGreen"><i class="ph-bold ph-arrow-right"></i></button>
+            </div>
+            <button id="nextPageBtn" onclick="changePage(1)" class="px-4 py-2 bg-white dark:bg-[#222426] rounded-xl shadow-sm border border-gray-200 dark:border-gray-800 disabled:opacity-40 font-bold text-sm hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors flex items-center gap-2">
+                Вперед <i class="ph-bold ph-caret-right"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- YOUTUBE CONTAINER -->
+    <div id="youtubeContainer" class="hidden">
+        
+        <div class="flex gap-2 overflow-x-auto hide-scrollbar mb-6 pb-2" id="ytFiltersContainer">
+        </div>
+
+        <div id="youtubeGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 xl:gap-8">
+        </div>
+        
+        <div id="youtubeEmptyState" class="hidden flex flex-col items-center justify-center py-20 text-center">
+            <i class="ph-fill ph-youtube-logo text-6xl text-gray-300 dark:text-gray-700 mb-4"></i>
+            <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-2">Нет предложенных видео</h3>
+            <p class="text-gray-500 dark:text-gray-400 text-sm font-medium">Добавьте ролик, который хотите посмотреть.</p>
+        </div>
+    </div>
+
+    <div id="emptyState" class="hidden flex flex-col items-center justify-center py-20 text-center">
+        <i class="ph-fill ph-ghost text-6xl text-gray-300 dark:text-gray-700 mb-4"></i>
+        <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-2">Ничего не найдено</h3>
+        <p class="text-gray-500 dark:text-gray-400 text-sm font-medium">Попробуйте изменить фильтры.</p>
+    </div>
+</div>
+
+<!-- View Item Modal -->
+<div id="viewModal" class="fixed inset-0 bg-gray-900/95 hidden z-50 flex items-center justify-center p-4 opacity-0 transition-opacity duration-300 backdrop-blur-sm" onclick="closeViewModal(event)">
+    <div class="bg-white dark:bg-[#1e1f22] rounded-3xl shadow-2xl w-full max-w-5xl overflow-hidden transform scale-95 transition-transform duration-300 relative flex flex-col md:flex-row max-h-[90vh] border border-gray-200 dark:border-gray-800" onclick="event.stopPropagation()">
+        
+        <button onclick="closeViewModal()" class="absolute top-4 right-4 bg-gray-200/80 dark:bg-black/50 text-gray-800 dark:text-white hover:bg-gray-300 dark:hover:bg-black/70 p-2.5 rounded-full transition-colors z-40 backdrop-blur-md shadow-lg border border-white/10">
+            <i class="ph-bold ph-x text-lg"></i>
+        </button>
+
+        <div class="md:w-2/5 relative bg-gray-100 dark:bg-black flex-shrink-0 flex items-center justify-center overflow-hidden border-b md:border-b-0 md:border-r border-gray-200 dark:border-gray-800 p-6">
+            <div id="viewFallback" class="absolute inset-0 flex items-center justify-center p-6 text-center z-0">
+                 <span id="viewFallbackText" class="text-xl font-black text-gray-400 dark:text-gray-700 uppercase tracking-widest break-words w-full line-clamp-4"></span>
+            </div>
+            <img id="viewPoster" src="" class="relative w-full h-64 sm:h-80 md:h-auto max-h-[75vh] object-contain z-20 drop-shadow-2xl rounded-xl" loading="lazy" referrerpolicy="no-referrer" onerror="this.style.display='none'">
+            <div id="viewRatingBadge" class="absolute bottom-6 left-6 flex items-center gap-1.5 text-2xl font-black text-yellow-400 bg-gray-900/90 px-4 py-1.5 rounded-xl backdrop-blur-md hidden shadow-2xl border border-yellow-500/30 z-30">
+                <i class="ph-fill ph-star"></i><span id="viewRating"></span>
+            </div>
+        </div>
+
+        <div class="p-6 md:p-10 flex flex-col flex-grow overflow-y-auto hide-scrollbar bg-white dark:bg-[#1e1f22] relative">
+            <div class="flex items-center gap-2 mb-4 flex-wrap">
+                <span id="viewType" class="inline-flex items-center gap-1 px-3 py-1 rounded-lg text-xs font-bold uppercase tracking-wider"></span>
+                <span id="viewStatus" class="inline-flex items-center gap-1 px-3 py-1 rounded-lg text-xs font-bold uppercase tracking-wider"></span>
+                <span id="viewIsTopBadge" class="text-yellow-700 bg-yellow-100 dark:bg-yellow-900/30 dark:text-yellow-400 px-3 py-1 rounded-lg text-xs font-bold uppercase tracking-wider hidden border border-yellow-200 dark:border-yellow-700/50"><i class="ph-fill ph-trophy mr-1"></i>Топ</span>
+            </div>
+
+            <h2 id="viewTitle" class="text-3xl md:text-5xl font-black text-gray-900 dark:text-white mb-6 leading-tight tracking-tight"></h2>
+            
+            <div class="flex flex-wrap items-center gap-5 text-sm text-gray-600 dark:text-gray-300 mb-8 font-semibold bg-gray-50 dark:bg-[#151718] p-5 rounded-2xl border border-gray-100 dark:border-gray-800">
+                <span id="viewYearWrap" class="flex items-center gap-2"><i class="ph-bold ph-calendar-blank text-gray-400 text-xl"></i> <span id="viewYear"></span></span>
+                <span id="viewDurationWrap" class="flex items-center gap-2 hidden"><i class="ph-bold ph-clock text-gray-400 text-xl"></i> <span id="viewDuration"></span></span>
+                <span id="viewDirectorWrap" class="flex items-center gap-2 hidden w-full sm:w-auto mt-2 sm:mt-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-gray-200 dark:border-gray-800"><i class="ph-bold ph-video-camera text-gray-400 text-xl"></i> <span id="viewDirector" class="truncate max-w-[250px]"></span></span>
+            </div>
+
+            <div class="space-y-8 flex-grow">
+                <div id="viewGenresWrap" class="hidden">
+                    <p class="text-xs text-gray-400 dark:text-gray-500 uppercase tracking-widest font-bold mb-3">Жанры</p>
+                    <div id="viewGenres" class="flex flex-wrap gap-2"></div>
+                </div>
+
+                <div id="viewCommentWrap" class="hidden">
+                    <p class="text-xs text-gray-400 dark:text-gray-500 uppercase tracking-widest font-bold mb-3">Комментарий</p>
+                    <p id="viewComment" class="text-gray-700 dark:text-gray-300 italic bg-ytGreen/10 dark:bg-ytGreen/5 p-5 rounded-2xl border border-ytGreen/20 dark:border-ytGreen/10 leading-relaxed text-sm"></p>
+                </div>
+                
+                <div id="viewSeasonsWrap" class="hidden mt-6">
+                    <p class="text-xs text-gray-400 dark:text-gray-500 uppercase tracking-widest font-bold mb-3 flex items-center gap-2"><i class="ph-fill ph-stack"></i> Сезоны</p>
+                    <div id="viewSeasonsList" class="flex flex-col gap-2"></div>
+                </div>
+            </div>
+
+            <div id="viewLinksWrap" class="hidden flex flex-col sm:flex-row gap-3 pt-8 mt-8 border-t border-gray-100 dark:border-gray-800">
+                <a id="viewLink1" href="#" target="_blank" class="hidden flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-6 py-3 bg-[#f50] hover:bg-[#ff661a] text-white rounded-xl font-bold transition-all shadow-md hover:shadow-lg text-sm whitespace-nowrap min-w-[160px]"></a>
+                <a id="viewLink2" href="#" target="_blank" class="hidden flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-6 py-3 bg-[#f5c518] hover:bg-[#e3b516] text-black rounded-xl font-bold transition-all shadow-md hover:shadow-lg text-sm whitespace-nowrap min-w-[160px]"></a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add/Edit Item Modal -->
+<div id="itemModal" class="fixed inset-0 bg-gray-900/80 hidden z-50 flex items-center justify-center p-4 opacity-0 transition-opacity duration-300 backdrop-blur-sm">
+    <div class="bg-white dark:bg-[#1e1f22] rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden transform scale-95 transition-transform duration-300 max-h-[95vh] flex flex-col border border-gray-200 dark:border-gray-800" id="modalContent">
+        
+        <div class="px-6 py-5 border-b border-gray-100 dark:border-gray-800 flex justify-between items-center bg-gray-50/50 dark:bg-[#151718] flex-shrink-0">
+            <h2 class="text-xl font-black text-gray-900 dark:text-white tracking-tight" id="modalTitle">Добавить запись</h2>
+            <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors p-1 bg-white dark:bg-[#222426] rounded-full shadow-sm border border-gray-200 dark:border-gray-700">
+                <i class="ph-bold ph-x text-lg"></i>
+            </button>
+        </div>
+        
+        <div class="p-6 overflow-y-auto hide-scrollbar">
+            <form id="itemForm" class="space-y-6">
+                <input type="hidden" id="itemId">
+                
+                <div>
+                    <label class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Название *</label>
+                    <div class="flex gap-2">
+                        <input type="text" id="itemTitle" required class="w-full px-4 py-3 bg-gray-50 dark:bg-[#151718] border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-1 focus:ring-ytGreen dark:text-white outline-none transition-colors font-medium">
+                        <button type="button" id="magicWandBtn" onclick="autoFillData()" class="bg-ytGreen/20 hover:bg-ytGreen/30 text-ytGreen px-4 py-3 rounded-xl font-bold transition-colors flex items-center justify-center shrink-0 w-12" title="Найти на Кинопоиске">
+                            <i class="ph-bold ph-magic-wand text-xl"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                    <div>
+                        <label class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Тип *</label>
+                        <select id="itemType" required class="w-full px-4 py-3 bg-gray-50 dark:bg-[#151718] border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-1 focus:ring-ytGreen dark:text-white outline-none appearance-none">
+                            <option value="movie">Фильм</option>
+                            <option value="series">Сериал</option>
+                            <option value="cartoon">Мультфильм</option>
+                            <option value="game">Игра</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Статус *</label>
+                        <select id="itemStatus" required class="w-full px-4 py-3 bg-gray-50 dark:bg-[#151718] border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-1 focus:ring-ytGreen dark:text-white outline-none appearance-none">
+                            <option value="watched">Просмотрено / Пройдено</option>
+                            <option value="planning">В планах</option>
+                            <option value="watching">В процессе</option>
+                            <option value="dropped">Брошено</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-5">
+                    <div>
+                        <label class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Оценка (0-10)</label>
+                        <input type="number" id="itemRating" min="0" max="10" step="0.1" placeholder="8.5" class="w-full px-4 py-3 bg-gray-50 dark:bg-[#151718] border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-1 focus:ring-ytGreen dark:text-white outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Год</label>
+                        <input type="number" id="itemYear" min="1900" max="2100" placeholder="2023" class="w-full px-4 py-3 bg-gray-50 dark:bg-[#151718] border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-1 focus:ring-ytGreen dark:text-white outline-none">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                    <div>
+                        <label class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Длительность (мин)</label>
+                        <input type="number" id="itemDuration" min="0" placeholder="120" class="w-full px-4 py-3 bg-gray-50 dark:bg-[#151718] border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-1 focus:ring-ytGreen dark:text-white outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Режиссер / Студия</label>
+                        <input type="text" id="itemDirector" placeholder="Кристофер Нолан..." class="w-full px-4 py-3 bg-gray-50 dark:bg-[#151718] border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-1 focus:ring-ytGreen dark:text-white outline-none">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-3">Жанры (несколько)</label>
+                    <div id="genresSelection" class="flex flex-wrap gap-2"></div>
+                    <input type="hidden" id="itemLegacyGenre">
+                </div>
+
+                <div class="bg-yellow-50 dark:bg-yellow-900/10 border border-yellow-200 dark:border-yellow-700/30 p-4 rounded-xl flex items-start gap-3">
+                    <input type="checkbox" id="itemIsTop" class="mt-1 w-5 h-5 text-yellow-600 rounded bg-white dark:bg-[#151718] border-yellow-300 dark:border-yellow-700 focus:ring-yellow-500 cursor-pointer">
+                    <label for="itemIsTop" class="text-sm font-bold text-yellow-800 dark:text-yellow-500 cursor-pointer select-none leading-tight">
+                        Добавить в "Лучшее" принудительно<br>
+                        <span class="text-xs font-medium text-yellow-600 dark:text-yellow-600/70">Появится в топе, даже если оценка ниже 7.5</span>
+                    </label>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">URL постера</label>
+                    <input type="url" id="itemPoster" placeholder="https://..." class="w-full px-4 py-3 bg-gray-50 dark:bg-[#151718] border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-1 focus:ring-ytGreen dark:text-white outline-none">
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                    <div>
+                        <label id="labelLink1" class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Ссылка Кинопоиск</label>
+                        <input type="url" id="itemKpUrl" placeholder="https://..." class="w-full px-4 py-3 bg-gray-50 dark:bg-[#151718] border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-1 focus:ring-ytGreen dark:text-white outline-none">
+                    </div>
+                    <div>
+                        <label id="labelLink2" class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Ссылка IMDb</label>
+                        <input type="url" id="itemImdbUrl" placeholder="https://..." class="w-full px-4 py-3 bg-gray-50 dark:bg-[#151718] border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-1 focus:ring-ytGreen dark:text-white outline-none">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Комментарий</label>
+                    <textarea id="itemComment" rows="2" class="w-full px-4 py-3 bg-gray-50 dark:bg-[#151718] border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-1 focus:ring-ytGreen dark:text-white outline-none resize-none"></textarea>
+                </div>
+
+                <div class="pt-6 flex gap-3 justify-end border-t border-gray-100 dark:border-gray-800">
+                    <button type="button" onclick="closeModal()" class="px-6 py-3 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-[#222426] hover:bg-gray-200 dark:hover:bg-[#2a2c2f] rounded-xl font-bold transition-colors">Отмена</button>
+                    <button type="submit" class="px-6 py-3 text-white bg-ytGreen hover:bg-ytGreenHover rounded-xl font-bold shadow-md transition-colors flex items-center gap-2">
+                        <i class="ph-bold ph-floppy-disk"></i> Сохранить
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Add/Edit YouTube Modal -->
+<div id="youtubeModal" class="fixed inset-0 bg-gray-900/90 hidden z-50 flex items-center justify-center p-4 opacity-0 transition-opacity duration-300 backdrop-blur-sm">
+    <div class="bg-white dark:bg-[#1e1f22] rounded-3xl shadow-2xl w-full max-w-4xl overflow-hidden transform scale-95 transition-transform duration-300 flex flex-col border border-gray-200 dark:border-gray-800" id="youtubeModalContent">
+        
+        <div class="px-6 py-5 border-b border-gray-100 dark:border-gray-800 flex justify-between items-center bg-gray-50/50 dark:bg-[#151718] flex-shrink-0">
+            <h2 class="text-xl font-black text-gray-900 dark:text-white flex items-center gap-2 uppercase tracking-wide"><span id="ytModalTitle">Предложить видео</span></h2>
+            <button onclick="closeYoutubeModal()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors p-1 bg-white dark:bg-[#222426] rounded-full shadow-sm border border-gray-200 dark:border-gray-700">
+                <i class="ph-bold ph-x text-lg"></i>
+            </button>
+        </div>
+        
+        <div class="p-6 md:p-8 overflow-y-auto hide-scrollbar">
+            <form id="youtubeForm" class="flex flex-col md:flex-row gap-8">
+                <input type="hidden" id="ytItemId">
+                <input type="hidden" id="ytTitle">
+                <input type="hidden" id="ytChannel">
+                <input type="hidden" id="ytDuration">
+                <input type="hidden" id="ytThumbnailUrl">
+                
+                <div class="w-full md:w-5/12 flex flex-col gap-4">
+                    <div class="relative w-full aspect-video bg-gray-100 dark:bg-[#151718] rounded-2xl overflow-hidden border border-gray-200 dark:border-gray-800 flex items-center justify-center shadow-inner">
+                        <img id="ytPreviewImg" src="" class="absolute inset-0 w-full h-full object-cover hidden">
+                        <div id="ytPreviewPlaceholder" class="text-gray-400 dark:text-gray-600 flex flex-col items-center">
+                            <i class="ph-fill ph-youtube-logo text-5xl mb-2"></i>
+                            <span class="text-xs font-bold uppercase tracking-widest">Превью видео</span>
+                        </div>
+                    </div>
+                    
+                    <div id="ytAutoData" class="hidden flex-col gap-1 px-2">
+                        <h4 id="ytAutoTitle" class="text-sm font-bold text-gray-900 dark:text-white line-clamp-2"></h4>
+                        <div class="flex items-center gap-2 text-xs font-semibold text-gray-500">
+                            <span id="ytAutoChannel"></span>
+                            <span class="w-1 h-1 rounded-full bg-gray-400"></span>
+                            <span id="ytAutoDuration"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="w-full md:w-7/12 flex flex-col space-y-6">
+                    <div>
+                        <label class="block text-sm font-bold text-gray-700 dark:text-gray-400 mb-2">Ссылка на видео</label>
+                        <div class="relative">
+                            <input type="url" id="ytUrl" required oninput="fetchYoutubeData(this.value)" placeholder="https://www.youtube.com/watch?v=..." class="w-full px-4 py-3.5 bg-gray-50 dark:bg-[#151718] border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-1 focus:ring-ytGreen dark:text-white outline-none font-medium">
+                            <button type="button" id="ytPriorityToggle" onclick="toggleYtPriority()" class="absolute right-3 top-1/2 transform -translate-y-1/2 p-1.5 text-gray-400 hover:text-yellow-500 transition-colors" title="Отметить как важное (Приоритет)">
+                                <i class="ph-fill ph-star text-2xl priority-star"></i>
+                            </button>
+                        </div>
+                        <input type="hidden" id="ytIsPriority" value="false">
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-bold text-gray-700 dark:text-gray-400 mb-3">Категория</label>
+                        <div class="flex flex-wrap gap-2" id="ytCategorySelection">
+                        </div>
+                    </div>
+
+                    <div class="flex-grow flex flex-col">
+                        <label class="block text-sm font-bold text-gray-700 dark:text-gray-400 mb-2">Комментарий <span class="text-xs font-normal opacity-60">[не обязательно]</span></label>
+                        <textarea id="ytComment" rows="3" placeholder="Добавить комментарий..." class="w-full flex-grow px-4 py-3 bg-gray-50 dark:bg-[#151718] border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-1 focus:ring-ytGreen dark:text-white outline-none resize-none font-medium text-sm"></textarea>
+                    </div>
+
+                    <button type="submit" class="w-full py-4 text-white bg-ytGreen hover:bg-ytGreenHover rounded-xl font-bold shadow-md transition-colors text-base uppercase tracking-wider">
+                        Отправить
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Settings Modal -->
+<div id="settingsModal" class="fixed inset-0 bg-gray-900/80 hidden z-[60] flex items-center justify-center p-4 opacity-0 transition-opacity duration-300 backdrop-blur-sm">
+    <div class="bg-white dark:bg-[#1e1f22] rounded-3xl shadow-2xl w-full max-w-md overflow-hidden transform scale-95 transition-transform duration-300 border border-gray-200 dark:border-gray-800" id="settingsContent">
+        <div class="px-6 py-5 border-b border-gray-100 dark:border-gray-800 flex justify-between items-center bg-gray-50/50 dark:bg-[#151718]">
+            <h2 class="text-xl font-black text-gray-900 dark:text-white flex items-center gap-2"><i class="ph-fill ph-gear text-ytGreen"></i> Настройки</h2>
+            <button onclick="closeSettingsModal()" class="text-gray-400 hover:text-white transition-colors p-1"><i class="ph-bold ph-x text-lg"></i></button>
+        </div>
+        <div class="p-6">
+            <form id="settingsForm" class="space-y-5">
+                <div>
+                    <label class="block text-sm font-bold text-gray-700 dark:text-gray-400 mb-2 flex items-center gap-2"><img src="https://s2.googleusercontent.com/s2/favicons?domain=shikimori.one&sz=32" class="w-4 h-4 rounded-sm grayscale"> Shikimori</label>
+                    <input type="url" id="settingShiki" class="w-full px-4 py-3 bg-gray-50 dark:bg-[#151718] border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-white outline-none focus:ring-1 focus:ring-ytGreen">
+                </div>
+                <div>
+                    <label class="block text-sm font-bold text-gray-700 dark:text-gray-400 mb-2 flex items-center gap-2"><i class="ph-fill ph-telegram-logo text-blue-500"></i> Telegram профиль</label>
+                    <input type="url" id="settingTgProfile" class="w-full px-4 py-3 bg-gray-50 dark:bg-[#151718] border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-white outline-none focus:ring-1 focus:ring-ytGreen">
+                </div>
+                <div>
+                    <label class="block text-sm font-bold text-gray-700 dark:text-gray-400 mb-2 flex items-center gap-2"><i class="ph-fill ph-users text-blue-400"></i> Telegram канал</label>
+                    <input type="url" id="settingTgChannel" class="w-full px-4 py-3 bg-gray-50 dark:bg-[#151718] border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-white outline-none focus:ring-1 focus:ring-ytGreen">
+                </div>
+                <button type="submit" class="w-full px-6 py-3 text-white bg-ytGreen hover:bg-ytGreenHover rounded-xl font-bold mt-4 transition-colors">Сохранить</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Password Modal -->
+<div id="passwordModal" class="fixed inset-0 bg-gray-900/80 hidden z-[70] flex items-center justify-center p-4 opacity-0 transition-opacity duration-200 backdrop-blur-sm">
+    <div class="bg-white dark:bg-[#1e1f22] rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden transform scale-95 transition-transform duration-200 border border-gray-200 dark:border-gray-800 p-6 text-center" id="passwordContent">
+        <div class="w-16 h-16 bg-ytGreen/20 text-ytGreen rounded-full flex items-center justify-center mx-auto mb-4">
+            <i class="ph-fill ph-lock-key text-3xl"></i>
+        </div>
+        <h2 class="text-xl font-black text-gray-900 dark:text-white mb-2">Вход</h2>
+        <input type="password" id="passwordInput" placeholder="••••••••" class="w-full px-4 py-3 bg-gray-50 dark:bg-[#151718] border border-gray-200 dark:border-gray-700 rounded-xl text-center font-bold tracking-widest text-gray-900 dark:text-white outline-none mb-4 mt-4 focus:ring-1 focus:ring-ytGreen">
+        <p id="passwordError" class="text-red-500 text-sm font-bold hidden mb-4">Неверный пароль!</p>
+        <div class="flex gap-3">
+            <button onclick="closePasswordModal()" class="flex-1 py-3 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-[#222426] hover:bg-gray-200 dark:hover:bg-[#2a2c2f] rounded-xl font-bold transition-colors">Отмена</button>
+            <button onclick="submitPassword()" class="flex-1 py-3 text-white bg-ytGreen hover:bg-ytGreenHover rounded-xl font-bold transition-colors">Войти</button>
+        </div>
+    </div>
+</div>
+
+<!-- Confirm Delete Modal -->
+<div id="confirmModal" class="fixed inset-0 bg-gray-900/80 hidden z-[70] flex items-center justify-center p-4 opacity-0 transition-opacity duration-200 backdrop-blur-sm">
+    <div class="bg-white dark:bg-[#1e1f22] rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden transform scale-95 transition-transform duration-200 border border-gray-200 dark:border-gray-800 p-6 text-center" id="confirmContent">
+        <div class="w-16 h-16 bg-red-100 dark:bg-red-900/30 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
+            <i class="ph-fill ph-warning text-3xl"></i>
+        </div>
+        <h2 class="text-xl font-black text-gray-900 dark:text-white mb-2">Удалить запись?</h2>
+        <div class="flex gap-3 mt-6">
+            <button onclick="closeConfirmModal()" class="flex-1 py-3 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-[#222426] hover:bg-gray-200 dark:hover:bg-[#2a2c2f] rounded-xl font-bold transition-colors">Отмена</button>
+            <button id="confirmBtn" class="flex-1 py-3 text-white bg-red-600 hover:bg-red-700 rounded-xl font-bold transition-colors">Удалить</button>
+        </div>
+    </div>
+</div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+    import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+    import { getFirestore, doc, collection, addDoc, updateDoc, deleteDoc, onSnapshot, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+    // Setup Firebase Config from Environment variables if available, otherwise fallback
+    const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
+        apiKey: "AIzaSyB-cyOOrnBbj0lbWQ93NArKu-f6t3BPhg8", // Note: using provided keys as fallback, ideally should be secure
+        authDomain: "mytracker-457e8.firebaseapp.com",
+        projectId: "mytracker-457e8",
+        storageBucket: "mytracker-457e8.firebasestorage.app",
+        messagingSenderId: "185340813530",
+        appId: "1:185340813530:web:ca68e09929527867d7c5e3",
+        measurementId: "G-4TBVP0JMFQ"
+    };
+    const appId = typeof __app_id !== 'undefined' ? __app_id : 'my-personal-tracker';
+
+    const ADMIN_PASSWORD = "222-00464Qw"; 
+    const KINOPOISK_API_KEY = "87302479-2e5b-4aad-ae8d-d1ad69aa5307";
+    const YOUTUBE_API_KEY = "AIzaSyCYSMX-MTO4X30XIVPp4UNSBTCN2uXp1fk";
+    
+    let app, db, auth, itemsCollection, youtubeCollection, settingsDocRef;
+    let contentData = [];
+    let youtubeData = [];
+    let itemToDeleteId = null; 
+    let itemToDeleteType = 'main'; 
+
+    let currentTab = 'main';
+    let currentPage = 1;
+    const ITEMS_PER_PAGE = 48;
+    
+    let currentFilters = { type: 'all', status: 'all', search: '', genre: '', director: '', year: '', bestOnly: false };
+    let ytFilters = { category: 'all', search: '', priorityOnly: false };
+    
+    let isAdmin = false;
+
+    const TYPE_CONFIG = {
+        'movie': { label: 'Фильм', icon: 'ph-film-strip', color: 'bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300', badge: 'bg-blue-500 text-white' },
+        'series': { label: 'Сериал', icon: 'ph-television', color: 'bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:text-purple-300', badge: 'bg-purple-500 text-white' },
+        'cartoon': { label: 'Мультфильм', icon: 'ph-paint-brush-broad', color: 'bg-pink-100 text-pink-700 dark:bg-pink-900/50 dark:text-pink-300', badge: 'bg-pink-500 text-white' },
+        'game': { label: 'Игра', icon: 'ph-game-controller', color: 'bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300', badge: 'bg-green-500 text-white' },
+        'unknown': { label: 'Неизвестно', icon: 'ph-question', color: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300', badge: 'bg-gray-500 text-white' }
+    };
+
+    const STATUS_CONFIG = {
+        'watched': { label: 'Просмотрено / Пройдено', icon: 'ph-check-circle', color: 'text-green-500', badge: 'bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300' },
+        'planning': { label: 'В планах', icon: 'ph-bookmark-simple', color: 'text-blue-500', badge: 'bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300' },
+        'watching': { label: 'В процессе', icon: 'ph-play-circle', color: 'text-yellow-500', badge: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-300' },
+        'dropped': { label: 'Брошено', icon: 'ph-x-circle', color: 'text-red-500', badge: 'bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300' }
+    };
+
+    const MOVIE_GENRES = {
+        'action': { label: 'Боевик', color: 'bg-red-500 text-white dark:bg-red-600' },
+        'comedy': { label: 'Комедия', color: 'bg-yellow-400 text-yellow-900 dark:bg-yellow-500 dark:text-yellow-900' },
+        'drama': { label: 'Драма', color: 'bg-blue-500 text-white dark:bg-blue-600' },
+        'horror': { label: 'Ужасы', color: 'bg-black text-red-500 dark:bg-black border border-red-500/50' },
+        'thriller': { label: 'Триллер', color: 'bg-gray-800 text-white dark:bg-gray-900' },
+        'crime': { label: 'Криминал', color: 'bg-slate-700 text-white dark:bg-slate-800' },
+        'sci-fi': { label: 'Фантастика', color: 'bg-indigo-500 text-white dark:bg-indigo-600' },
+        'fantasy': { label: 'Фэнтези', color: 'bg-purple-500 text-white dark:bg-purple-600' },
+        'adventure': { label: 'Приключения', color: 'bg-green-500 text-white dark:bg-green-600' },
+        'detective': { label: 'Детектив', color: 'bg-teal-500 text-white dark:bg-teal-600' },
+        'war': { label: 'Военный', color: 'bg-lime-800 text-white dark:bg-lime-900' },
+        'romance': { label: 'Мелодрама', color: 'bg-pink-500 text-white dark:bg-pink-600' },
+        'family': { label: 'Семейный', color: 'bg-orange-400 text-white dark:bg-orange-500' },
+        'doc': { label: 'Документальный', color: 'bg-cyan-600 text-white dark:bg-cyan-700' },
+        'biography': { label: 'Биография', color: 'bg-stone-500 text-white dark:bg-stone-600' },
+        'history': { label: 'История', color: 'bg-amber-700 text-white dark:bg-amber-800' },
+        'musical': { label: 'Мюзикл', color: 'bg-fuchsia-500 text-white dark:bg-fuchsia-600' },
+        'sport': { label: 'Спорт', color: 'bg-orange-600 text-white dark:bg-orange-700' },
+        'western': { label: 'Вестерн', color: 'bg-yellow-700 text-white dark:bg-yellow-800' },
+        'short': { label: 'Короткометражка', color: 'bg-indigo-400 text-white dark:bg-indigo-500' }
+    };
+
+    const GAME_GENRES = {
+        'rpg': { label: 'RPG', color: 'bg-purple-600 text-white dark:bg-purple-700' },
+        'action_game': { label: 'Экшен', color: 'bg-red-600 text-white dark:bg-red-700' },
+        'shooter': { label: 'Шутер', color: 'bg-slate-800 text-white dark:bg-slate-900' },
+        'strategy': { label: 'Стратегия', color: 'bg-blue-600 text-white dark:bg-blue-700' },
+        'adventure_game': { label: 'Приключение', color: 'bg-green-600 text-white dark:bg-green-700' },
+        'indie': { label: 'Инди', color: 'bg-teal-600 text-white dark:bg-teal-700' },
+        'simulator': { label: 'Симулятор', color: 'bg-cyan-700 text-white dark:bg-cyan-800' },
+        'platformer': { label: 'Платформер', color: 'bg-orange-500 text-white dark:bg-orange-600' },
+        'puzzle': { label: 'Головоломка', color: 'bg-pink-600 text-white dark:bg-pink-700' },
+        'horror_game': { label: 'Хоррор', color: 'bg-black text-red-500 border border-red-500/50' },
+        'survival': { label: 'Выживание', color: 'bg-lime-700 text-white dark:bg-lime-800' },
+        'mmo': { label: 'MMO', color: 'bg-indigo-600 text-white dark:bg-indigo-700' },
+        'sports_game': { label: 'Спорт', color: 'bg-yellow-600 text-white dark:bg-yellow-700' }
+    };
+    
+    const YT_CATEGORIES = {
+        'truecrime': 'Трукрайм',
+        'trailers': 'Трейлеры',
+        'expose': 'Разоблачения',
+        'entertainment': 'Развлекательные',
+        'retellings': 'Пересказы',
+        'other': 'Разное'
+    };
+
+    const ALL_GENRES = { ...MOVIE_GENRES, ...GAME_GENRES };
+    let selectedGenres = [];
+
+    window.closeAllCustomSelects = function() {
+        document.querySelectorAll('.custom-select-dropdown').forEach(el => el.classList.remove('show'));
+    }
+
+    async function init() {
+        initTheme();
+        checkAdminStatus(); 
+        try {
+            app = initializeApp(firebaseConfig);
+            db = getFirestore(app);
+            auth = getAuth(app);
+
+            // Robust Auth flow using custom token if provided, else anonymous
+            let authPromise;
+            if (typeof __initial_auth_token !== 'undefined') {
+                authPromise = signInWithCustomToken(auth, __initial_auth_token);
+            } else {
+                authPromise = signInAnonymously(auth);
+            }
+            
+            authPromise.then(() => {
+                // IMPORTANT: Using the correct path rules for public data
+                itemsCollection = collection(db, 'artifacts', appId, 'public', 'data', 'tracker_items');
+                youtubeCollection = collection(db, 'artifacts', appId, 'public', 'data', 'youtube_items');
+                settingsDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'socials');
+
+                onSnapshot(itemsCollection, (snapshot) => {
+                    contentData = snapshot.docs.map(docSnap => ({ id: docSnap.id, ...docSnap.data() }));
+                    // updateTotalTime(); - removed as not used in this iteration of HTML
+                    if(currentTab === 'main') renderGrid();
+                }, (error) => console.error("Ошибка элементов:", error));
+                
+                onSnapshot(youtubeCollection, (snapshot) => {
+                    youtubeData = snapshot.docs.map(docSnap => ({ id: docSnap.id, ...docSnap.data() }));
+                    if(currentTab === 'youtube') renderYoutubeGrid();
+                }, (error) => console.error("Ошибка YouTube:", error));
+
+                onSnapshot(settingsDocRef, (docSnap) => {
+                    if (docSnap.exists()) updateSocialLinksUI(docSnap.data());
+                }, (error) => console.error("Ошибка настроек соц. сетей:", error));
+            }).catch((error) => {
+                 console.error("Ошибка Firebase Auth:", error);
+                 // Fallback render to at least show empty states
+                 if(currentTab === 'main') renderGrid();
+                 if(currentTab === 'youtube') renderYoutubeGrid();
+            });
+
+        } catch (error) { 
+            console.error("Ошибка инициализации Firebase:", error); 
+        }
+
+        setupEventListeners();
+        renderGenreFilterOptions();
+        renderYoutubeCategorySelection();
+    }
+
+    window.toggleCustomSelect = function(e, id) {
+        e.stopPropagation();
+        closeAllCustomSelects();
+        document.getElementById(id).classList.toggle('show');
+    }
+    
+    window.selectCustomGenre = function(val, label) {
+        currentFilters.genre = val;
+        currentPage = 1;
+        document.getElementById('customGenreSelectLabel').textContent = label;
+        
+        document.querySelectorAll('.custom-select-option').forEach(el => el.classList.remove('selected'));
+        if(val) {
+             document.querySelector(`.custom-select-option[data-val="${val}"]`)?.classList.add('selected');
+        } else {
+             document.querySelector(`.custom-select-option[data-val="all"]`)?.classList.add('selected');
+        }
+        
+        renderGrid();
+    }
+
+    function renderGenreFilterOptions() {
+        const select = document.getElementById('customGenreSelect');
+        if (!select) return;
+        select.innerHTML = `<div class="custom-select-option selected" data-val="all" onclick="selectCustomGenre('', 'Всё')">Всё</div>`;
+        
+        select.innerHTML += `<div class="px-3 py-1 text-xs font-bold text-gray-400 mt-2 uppercase">Кино и Сериалы</div>`;
+        for (const [id, genre] of Object.entries(MOVIE_GENRES)) {
+            select.innerHTML += `<div class="custom-select-option" data-val="${id}" onclick="selectCustomGenre('${id}', '${genre.label}')">${genre.label}</div>`;
+        }
+        
+        select.innerHTML += `<div class="px-3 py-1 text-xs font-bold text-gray-400 mt-2 border-t border-gray-100 dark:border-gray-800 pt-2 uppercase">Игры</div>`;
+        for (const [id, genre] of Object.entries(GAME_GENRES)) {
+            select.innerHTML += `<div class="custom-select-option" data-val="${id}" onclick="selectCustomGenre('${id}', '${genre.label}')">${genre.label}</div>`;
+        }
+    }
+
+    window.switchTab = function(tab) {
+        currentTab = tab;
+        
+        // Update Tab Active State
+        document.getElementById('tabMain').classList.remove('active');
+        document.getElementById('tabYoutube').classList.remove('active');
+        
+        // Hide all containers
+        document.getElementById('mainContainer').classList.add('hidden');
+        document.getElementById('youtubeContainer').classList.add('hidden');
+        
+        // Hide all action buttons (using the IDs we added in HTML)
+        const mainActions = document.getElementById('mainActionButtons');
+        const ytActions = document.getElementById('youtubeActionButtons');
+        
+        if (mainActions) mainActions.classList.add('hidden');
+        if (ytActions) ytActions.classList.add('hidden');
+        
+        // Reset Search
+        document.getElementById('globalSearchInput').value = '';
+        currentFilters.search = '';
+        ytFilters.search = '';
+
+        if (tab === 'main') {
+            document.getElementById('tabMain').classList.add('active');
+            document.getElementById('mainContainer').classList.remove('hidden');
+            if(isAdmin && mainActions) mainActions.classList.remove('hidden');
+            renderGrid();
+        } else {
+            document.getElementById('tabYoutube').classList.add('active');
+            document.getElementById('youtubeContainer').classList.remove('hidden');
+            if(isAdmin && ytActions) ytActions.classList.remove('hidden');
+            renderYoutubeGrid();
+        }
+    }
+
+    function initTheme() {
+        if (localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark');
+            const icon = document.getElementById('themeIcon');
+            if(icon) { icon.classList.remove('ph-moon'); icon.classList.add('ph-sun'); }
+        } else {
+            document.documentElement.classList.remove('dark');
+            const icon = document.getElementById('themeIcon');
+            if(icon) { icon.classList.remove('ph-sun'); icon.classList.add('ph-moon'); }
+        }
+    }
+
+    window.toggleTheme = function() {
+        document.documentElement.classList.toggle('dark');
+        const icon = document.getElementById('themeIcon');
+        if (document.documentElement.classList.contains('dark')) {
+            localStorage.setItem('theme', 'dark');
+            if(icon) { icon.classList.remove('ph-moon'); icon.classList.add('ph-sun'); }
+        } else {
+            localStorage.setItem('theme', 'light');
+            if(icon) { icon.classList.remove('ph-sun'); icon.classList.add('ph-moon'); }
+        }
+    }
+
+    function checkAdminStatus() {
+        if (localStorage.getItem('tracker_admin_key') === ADMIN_PASSWORD) {
+            isAdmin = true;
+            document.body.classList.add('is-admin');
+            const loginBtn = document.getElementById('loginBtn');
+            const logoutBtn = document.getElementById('logoutBtn');
+            if(loginBtn) loginBtn.classList.add('hidden');
+            if(logoutBtn) logoutBtn.classList.remove('hidden');
+        } else {
+            isAdmin = false;
+            document.body.classList.remove('is-admin');
+            const loginBtn = document.getElementById('loginBtn');
+            const logoutBtn = document.getElementById('logoutBtn');
+            if(loginBtn) loginBtn.classList.remove('hidden');
+            if(logoutBtn) logoutBtn.classList.add('hidden');
+        }
+        
+        // Ensure UI buttons update on load/auth change
+        if(isAdmin) {
+            if(currentTab === 'main') {
+                document.getElementById('mainActionButtons')?.classList.remove('hidden');
+                document.getElementById('youtubeActionButtons')?.classList.add('hidden');
+            } else {
+                document.getElementById('mainActionButtons')?.classList.add('hidden');
+                document.getElementById('youtubeActionButtons')?.classList.remove('hidden');
+            }
+        }
+    }
+
+    window.logout = function() {
+        localStorage.removeItem('tracker_admin_key');
+        checkAdminStatus();
+        if(currentTab === 'main') renderGrid(); else renderYoutubeGrid();
+    };
+
+    const pwModal = document.getElementById('passwordModal');
+    const pwInput = document.getElementById('passwordInput');
+    const pwError = document.getElementById('passwordError');
+
+    window.openPasswordModal = function() {
+        document.body.classList.add('modal-open');
+        pwInput.value = '';
+        pwError.classList.add('hidden');
+        pwModal.classList.remove('hidden');
+        setTimeout(() => { pwModal.classList.remove('opacity-0'); pwModal.children[0].classList.remove('scale-95'); pwInput.focus(); }, 10);
+    }
+
+    window.closePasswordModal = function() {
+        document.body.classList.remove('modal-open');
+        pwModal.classList.add('opacity-0');
+        pwModal.children[0].classList.add('scale-95');
+        setTimeout(() => pwModal.classList.add('hidden'), 200);
+    }
+
+    window.submitPassword = function() {
+        if (pwInput.value === ADMIN_PASSWORD) {
+            localStorage.setItem('tracker_admin_key', pwInput.value);
+            checkAdminStatus();
+            if(currentTab === 'main') renderGrid(); else renderYoutubeGrid();
+            closePasswordModal();
+        } else { pwError.classList.remove('hidden'); }
+    }
+    if(pwInput) {
+        pwInput.addEventListener('keypress', function (e) { if (e.key === 'Enter') submitPassword(); });
+    }
+
+    function formatTime(minutes) {
+        if (!minutes || minutes <= 0) return '';
+        const hours = Math.floor(minutes / 60);
+        const mins = minutes % 60;
+        if (hours > 0) return `${hours} ч. ${mins > 0 ? mins + ' мин.' : ''}`;
+        return `${mins} мин.`;
+    }
+
+    function updateSocialLinksUI(data) {
+        const container = document.getElementById('socialLinksContainer');
+        if(!container) return;
+        container.innerHTML = '';
+        const createBtn = (url, iconHtml, title) => {
+            if(!url) return '';
+            return `<a href="${url}" target="_blank" rel="noopener noreferrer" class="p-2 text-gray-500 hover:text-ytGreen transition-colors rounded-lg" title="${title}">${iconHtml}</a>`;
+        };
+        if(data.shiki) container.innerHTML += createBtn(data.shiki, `<img src="https://s2.googleusercontent.com/s2/favicons?domain=shikimori.one&sz=64" class="w-5 h-5 rounded-sm grayscale hover:grayscale-0 transition-all opacity-80 hover:opacity-100">`, 'Профиль Shikimori');
+        if(data.tgProfile) container.innerHTML += createBtn(data.tgProfile, `<i class="ph-fill ph-telegram-logo text-xl"></i>`, 'Telegram Профиль');
+        if(data.tgChannel) container.innerHTML += createBtn(data.tgChannel, `<i class="ph-fill ph-users text-xl"></i>`, 'Telegram Канал/Группа');
+    }
+
+    function renderGenreSelection(type) {
+        const container = document.getElementById('genresSelection');
+        if(!container) return;
+        container.innerHTML = '';
+        const genreDict = type === 'game' ? GAME_GENRES : MOVIE_GENRES;
+        for (const [id, genre] of Object.entries(genreDict)) {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = `px-3 py-1.5 rounded-lg text-xs font-bold transition-all border ${genre.color} opacity-60 hover:opacity-100 grayscale hover:grayscale-0 transform hover:scale-105 active:scale-95`;
+            btn.textContent = genre.label;
+            btn.onclick = () => toggleGenreSelection(id, btn);
+            btn.dataset.id = id;
+            container.appendChild(btn);
+        }
+        updateGenreSelectionUI();
+    }
+
+    window.toggleGenreSelection = function(id, btn) {
+        if (selectedGenres.includes(id)) {
+            selectedGenres = selectedGenres.filter(g => g !== id);
+        } else {
+            selectedGenres.push(id);
+        }
+        updateGenreSelectionUI();
+    }
+
+    function updateGenreSelectionUI() {
+        const container = document.getElementById('genresSelection');
+        if(!container) return;
+        const buttons = container.querySelectorAll('button');
+        buttons.forEach(btn => {
+            if (selectedGenres.includes(btn.dataset.id)) {
+                btn.classList.remove('opacity-60', 'grayscale');
+                btn.classList.add('ring-2', 'ring-offset-2', 'dark:ring-offset-[#151718]', 'ring-indigo-500', 'opacity-100', 'grayscale-0');
+            } else {
+                btn.classList.add('opacity-60', 'grayscale');
+                btn.classList.remove('ring-2', 'ring-offset-2', 'dark:ring-offset-[#151718]', 'ring-indigo-500', 'opacity-100', 'grayscale-0');
+            }
+        });
+    }
+
+    function renderYoutubeCategorySelection() {
+        const container = document.getElementById('ytCategorySelection');
+        if(!container) return;
+        container.innerHTML = '';
+        for (const [id, label] of Object.entries(YT_CATEGORIES)) {
+            container.innerHTML += `
+                <label class="cursor-pointer">
+                    <input type="radio" name="ytCategory" value="${id}" class="hidden category-radio">
+                    <div class="px-4 py-2 rounded-full border border-gray-300 dark:border-gray-700 text-sm font-semibold text-gray-600 dark:text-gray-400 transition-colors">
+                        ${label}
+                    </div>
+                </label>
+            `;
+        }
+    }
+
+    function groupSeasons(data) {
+        const grouped = [];
+        const seasonRegex = /^(.*?)(\s+\d+\s+сезон)$/i;
+        const parentMap = new Map();
+
+        data.forEach(item => {
+            const titleStr = typeof item.title === 'string' ? item.title : '';
+            const match = titleStr.match(seasonRegex);
+            if (match && item.type === 'series') {
+                const baseName = match[1].trim();
+                if (!parentMap.has(baseName)) {
+                    parentMap.set(baseName, {
+                        id: 'group_' + baseName,
+                        title: baseName,
+                        type: 'series',
+                        isGroup: true,
+                        children: [],
+                        poster: item.poster,
+                        genres: item.genres,
+                        genre: item.genre,
+                        year: item.year,
+                        director: item.director,
+                        kpUrl: item.kpUrl,
+                        imdbUrl: item.imdbUrl
+                    });
+                    grouped.push(parentMap.get(baseName));
+                }
+                const parent = parentMap.get(baseName);
+                item.parentId = parent.id;
+                parent.children.push(item);
+                
+                if (item.poster) parent.poster = item.poster;
+                if (!parent.year || item.year < parent.year) parent.year = item.year;
+            } else {
+                grouped.push(item);
+            }
+        });
+
+        parentMap.forEach(parent => {
+            parent.children.sort((a, b) => (a.title||'').localeCompare(b.title||''));
+            const activeChild = parent.children.find(c => c.status === 'watching') || parent.children[parent.children.length - 1];
+            parent.status = activeChild ? activeChild.status : 'planning';
+            const ratedChildren = parent.children.filter(c => c.rating).map(c => c.rating);
+            if(ratedChildren.length > 0) parent.rating = (ratedChildren.reduce((a,b)=>a+b,0) / ratedChildren.length).toFixed(1);
+            parent.isTop = parent.children.some(c => c.isTop);
+        });
+
+        return grouped;
+    }
+
+    function renderGrid() {
+        const grid = document.getElementById('contentGrid');
+        const emptyState = document.getElementById('emptyState');
+        const pagControls = document.getElementById('paginationControls');
+        if(!grid) return;
+        
+        grid.innerHTML = '';
+
+        const processedData = groupSeasons(contentData);
+
+        let filteredData = processedData.filter(item => {
+            const titleSafe = item.title || '';
+            const mSearch = titleSafe.toLowerCase().includes(currentFilters.search.toLowerCase());
+            const mType = currentFilters.type === 'all' || item.type === currentFilters.type;
+            const mStatus = currentFilters.status === 'all' || item.status === currentFilters.status;
+            
+            let mGenre = true;
+            if (currentFilters.genre) {
+                const hasInArray = item.genres && item.genres.includes(currentFilters.genre);
+                const legacyLabel = ALL_GENRES[currentFilters.genre]?.label.toLowerCase() || '';
+                const hasInLegacyString = item.genre && item.genre.toLowerCase().includes(legacyLabel);
+                mGenre = hasInArray || hasInLegacyString;
+            }
+            
+            const dirSafe = item.director || '';
+            const mDir = !currentFilters.director || (dirSafe.toLowerCase().includes(currentFilters.director.toLowerCase()));
+            const mYear = !currentFilters.year || (item.year && item.year.toString() === currentFilters.year);
+            
+            let mBest = true;
+            if (currentFilters.bestOnly) mBest = (item.rating && item.rating >= 7.5) || item.isTop === true;
+
+            return mSearch && mType && mStatus && mGenre && mDir && mYear && mBest;
+        });
+
+        if (filteredData.length === 0) {
+            grid.classList.add('hidden');
+            if(emptyState) emptyState.classList.remove('hidden');
+            if(pagControls) { pagControls.classList.add('hidden'); pagControls.classList.remove('flex'); }
+            return;
+        }
+
+        grid.classList.remove('hidden');
+        if(emptyState) emptyState.classList.add('hidden');
+
+        if (currentFilters.bestOnly) filteredData.sort((a, b) => (b.rating || 0) - (a.rating || 0));
+        else filteredData.sort((a, b) => (a.title||'').localeCompare(b.title||''));
+
+        const totalPages = Math.ceil(filteredData.length / ITEMS_PER_PAGE);
+        if (currentPage > totalPages) currentPage = Math.max(1, totalPages);
+
+        if (totalPages > 1 && pagControls) {
+            pagControls.classList.remove('hidden');
+            pagControls.classList.add('flex');
+            const pageInfo = document.getElementById('pageInfo');
+            if(pageInfo) pageInfo.textContent = `Стр ${currentPage} / ${totalPages}`;
+            document.getElementById('prevPageBtn').disabled = currentPage === 1;
+            document.getElementById('nextPageBtn').disabled = currentPage === totalPages;
+        } else if (pagControls) {
+            pagControls.classList.add('hidden');
+            pagControls.classList.remove('flex');
+        }
+
+        const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+        const endIndex = startIndex + ITEMS_PER_PAGE;
+        const pagedData = filteredData.slice(startIndex, endIndex);
+
+        pagedData.forEach(item => {
+            const typeInfo = TYPE_CONFIG[item.type] || TYPE_CONFIG['unknown'];
+            const statusInfo = STATUS_CONFIG[item.status] || STATUS_CONFIG['planning'];
+
+            let primaryGenreHtml = '';
+            if (item.genres && item.genres.length > 0) {
+                const gConf = ALL_GENRES[item.genres[0]];
+                if(gConf) primaryGenreHtml = `<span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase ${gConf.color} border-none max-w-full block">${gConf.label}</span>`;
+            } else if (item.genre) { 
+                primaryGenreHtml = `<span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-300 max-w-full truncate block">${item.genre.split(',')[0]}</span>`;
+            }
+
+            const card = document.createElement('div');
+            card.className = `bg-white dark:bg-[#222426] rounded-2xl shadow-sm overflow-hidden border border-gray-100 dark:border-gray-800 card-transition flex flex-col h-full relative group cursor-pointer`;
+            card.onclick = () => window.openViewModal(item.id);
+            
+            let adminButtons = '';
+            if(!item.isGroup) {
+                adminButtons = `
+                    <button onclick="window.confirmDelete('${item.id}', 'main', event)" class="admin-only absolute top-3 right-3 bg-red-500/90 backdrop-blur text-white w-9 h-9 flex items-center justify-center rounded-xl sm:opacity-0 sm:group-hover:opacity-100 transition-opacity z-30 hover:bg-red-600 shadow-lg border border-red-400">
+                        <i class="ph-bold ph-trash text-lg"></i>
+                    </button>
+                    <button onclick="window.editItem('${item.id}', event)" class="admin-only absolute top-3 left-3 bg-white/90 dark:bg-[#151718]/90 backdrop-blur text-gray-800 dark:text-white w-9 h-9 flex items-center justify-center rounded-xl sm:opacity-0 sm:group-hover:opacity-100 transition-opacity z-30 hover:bg-white dark:hover:bg-gray-700 shadow-lg border border-gray-200 dark:border-gray-600">
+                        <i class="ph-bold ph-pencil-simple text-lg"></i>
+                    </button>
+                `;
+            }
+
+            const titleSafe = item.title || 'Без названия';
+            card.innerHTML = `
+                ${adminButtons}
+                <div class="relative pt-[140%] bg-gray-100 dark:bg-[#151718] overflow-hidden flex-shrink-0">
+                    <div class="absolute inset-0 flex items-center justify-center p-4 text-center bg-gradient-to-br from-gray-200 to-gray-300 dark:from-[#222426] dark:to-[#151718] z-0">
+                        <span class="font-black text-gray-400 dark:text-gray-600 text-xl uppercase tracking-widest break-words w-full line-clamp-4">${titleSafe}</span>
+                    </div>
+                    
+                    ${item.poster ? `<img src="${item.poster}" alt="${titleSafe}" class="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110 z-10" loading="lazy" referrerpolicy="no-referrer" onerror="this.style.display='none'">` : ''}
+                    
+                    ${item.isTop && !currentFilters.bestOnly ? `<div class="absolute top-3 left-1/2 transform -translate-x-1/2 bg-gradient-to-r from-yellow-400 to-yellow-500 text-yellow-900 text-[10px] font-black px-3 py-1 rounded-full shadow-lg z-20 flex items-center gap-1 border border-yellow-300"><i class="ph-fill ph-trophy"></i>ТОП</div>` : ''}
+
+                    <div class="absolute inset-0 bg-gradient-to-t from-gray-900/90 via-transparent to-transparent z-10 pointer-events-none"></div>
+
+                    <div class="absolute bottom-0 left-0 right-0 p-3 pt-10 flex justify-between items-end z-20 pointer-events-none">
+                        <span class="flex items-center justify-center w-7 h-7 rounded-full bg-black/60 backdrop-blur-md shadow-inner border border-white/10" title="${statusInfo.label}">
+                            <i class="ph-fill ${statusInfo.icon} ${statusInfo.color.replace('text-', 'text-')} text-lg"></i>
+                        </span>
+                        ${item.rating ? `<span class="flex items-center gap-1 text-xs font-black text-yellow-400 bg-black/60 px-2.5 py-1 rounded-lg backdrop-blur-md shadow-inner border border-yellow-500/20"><i class="ph-fill ph-star text-sm"></i>${item.rating}</span>` : ''}
+                    </div>
+                </div>
+                <div class="p-3.5 flex flex-col flex-grow bg-white dark:bg-[#222426] w-full overflow-hidden">
+                    <h3 class="font-extrabold text-gray-900 dark:text-white leading-tight line-clamp-2 text-sm sm:text-base mb-2">${titleSafe}</h3>
+                    <div class="flex items-end justify-between mt-auto pt-2 gap-2 w-full overflow-hidden">
+                        <div class="flex flex-col gap-1.5 items-start overflow-hidden w-full min-w-0">
+                            <span class="text-[11px] text-gray-500 dark:text-gray-400 font-bold leading-none">${item.year ? item.year : '—'}</span>
+                            ${primaryGenreHtml}
+                        </div>
+                        <span class="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider ${typeInfo.color} flex-shrink-0 self-end">
+                            ${item.isGroup ? '<i class="ph-fill ph-stack"></i>' : ''}${typeInfo.label}
+                        </span>
+                    </div>
+                </div>
+            `;
+            grid.appendChild(card);
+        });
+    }
+
+    function renderYoutubeFilters() {
+        const container = document.getElementById('ytFiltersContainer');
+        if(!container) return;
+        container.innerHTML = '';
+        
+        const counts = { all: youtubeData.length, priority: 0 };
+        for(let key in YT_CATEGORIES) counts[key] = 0;
+        
+        youtubeData.forEach(item => {
+            if(item.isPriority) counts.priority++;
+            if(item.category && counts[item.category] !== undefined) counts[item.category]++;
+        });
+
+        const activeClass = "bg-ytGreen text-white border-ytGreen";
+        const inactiveClass = "bg-white text-gray-600 border-gray-200 hover:bg-gray-50 dark:bg-[#222426] dark:border-gray-700 dark:text-gray-300 dark:hover:bg-[#2a2c2f]";
+
+        const isPrioActive = ytFilters.priorityOnly;
+        container.innerHTML += `
+            <button onclick="toggleYtPriorityFilter()" class="px-4 py-1.5 rounded-full text-sm font-bold border transition-colors flex items-center gap-1.5 whitespace-nowrap shrink-0 ${isPrioActive ? activeClass : inactiveClass}">
+                <i class="ph-fill ph-star ${isPrioActive ? 'text-yellow-300' : 'text-yellow-500'}"></i> Приоритет <span class="opacity-60 text-xs ml-1">${counts.priority}</span>
+            </button>
+        `;
+
+        const isAllActive = !ytFilters.priorityOnly && ytFilters.category === 'all';
+        container.innerHTML += `
+            <button onclick="setYoutubeFilter('all')" class="px-4 py-1.5 rounded-full text-sm font-bold border transition-colors flex items-center gap-1.5 whitespace-nowrap shrink-0 ${isAllActive ? activeClass : inactiveClass}">
+                Все <span class="opacity-60 text-xs ml-1">${counts.all}</span>
+            </button>
+        `;
+
+        for (const [id, label] of Object.entries(YT_CATEGORIES)) {
+            const isActive = !ytFilters.priorityOnly && ytFilters.category === id;
+            container.innerHTML += `
+                <button onclick="setYoutubeFilter('${id}')" class="px-4 py-1.5 rounded-full text-sm font-bold border transition-colors flex items-center gap-1.5 whitespace-nowrap shrink-0 ${isActive ? activeClass : inactiveClass}">
+                    ${label} <span class="opacity-60 text-xs ml-1">${counts[id]}</span>
+                </button>
+            `;
+        }
+    }
+
+    window.setYoutubeFilter = function(category) {
+        ytFilters.priorityOnly = false;
+        ytFilters.category = category;
+        renderYoutubeFilters();
+        renderYoutubeGrid();
+    }
+
+    window.toggleYtPriorityFilter = function() {
+        ytFilters.priorityOnly = !ytFilters.priorityOnly;
+        if(ytFilters.priorityOnly) ytFilters.category = 'all';
+        renderYoutubeFilters();
+        renderYoutubeGrid();
+    }
+
+    function renderYoutubeGrid() {
+        const grid = document.getElementById('youtubeGrid');
+        const emptyState = document.getElementById('youtubeEmptyState');
+        if(!grid) return;
+        
+        grid.innerHTML = '';
+        renderYoutubeFilters();
+
+        let filteredData = youtubeData.filter(item => {
+            const titleSafe = item.title || '';
+            const channelSafe = item.channel || '';
+            const mSearch = titleSafe.toLowerCase().includes(ytFilters.search.toLowerCase()) || 
+                            channelSafe.toLowerCase().includes(ytFilters.search.toLowerCase());
+            
+            let mCat = true;
+            if (ytFilters.priorityOnly) {
+                mCat = item.isPriority === true;
+            } else if (ytFilters.category !== 'all') {
+                mCat = item.category === ytFilters.category;
+            }
+            return mSearch && mCat;
+        });
+        
+        filteredData.sort((a, b) => {
+            let tA = (a.addedAt && typeof a.addedAt.toMillis === 'function') ? a.addedAt.toMillis() : 0;
+            let tB = (b.addedAt && typeof b.addedAt.toMillis === 'function') ? b.addedAt.toMillis() : 0;
+            return tB - tA;
+        });
+
+        if (filteredData.length === 0) {
+            grid.classList.add('hidden');
+            if(emptyState) emptyState.classList.remove('hidden');
+            return;
+        }
+
+        grid.classList.remove('hidden');
+        if(emptyState) emptyState.classList.add('hidden');
+
+        filteredData.forEach(item => {
+            const card = document.createElement('a');
+            card.href = item.url || '#';
+            card.target = '_blank';
+            card.className = `bg-white dark:bg-[#222426] rounded-2xl shadow-sm overflow-hidden border border-gray-100 dark:border-gray-800 card-transition flex flex-col relative group cursor-pointer block h-full`;
+            
+            let adminButtons = '';
+            if(isAdmin) {
+                adminButtons = `
+                    <button onclick="window.confirmDelete('${item.id}', 'youtube', event)" class="admin-only absolute top-2 right-2 bg-red-500/90 backdrop-blur text-white w-8 h-8 flex items-center justify-center rounded-lg sm:opacity-0 sm:group-hover:opacity-100 transition-opacity z-30 hover:bg-red-600 shadow-md">
+                        <i class="ph-bold ph-trash"></i>
+                    </button>
+                    <button onclick="window.editYoutubeItem('${item.id}', event)" class="admin-only absolute top-2 left-2 bg-white/90 dark:bg-[#151718]/90 backdrop-blur text-gray-800 dark:text-white w-8 h-8 flex items-center justify-center rounded-lg sm:opacity-0 sm:group-hover:opacity-100 transition-opacity z-30 hover:bg-white dark:hover:bg-gray-700 shadow-md">
+                        <i class="ph-bold ph-pencil-simple"></i>
+                    </button>
+                `;
+            }
+            
+            let badges = '';
+            if (item.isPriority) {
+                badges += `<div class="absolute top-2 left-2 z-20 bg-yellow-500 text-white text-[10px] font-bold px-2 py-0.5 rounded shadow flex items-center gap-1"><i class="ph-fill ph-star"></i>Важное</div>`;
+            }
+
+            card.innerHTML = `
+                ${adminButtons}
+                <div class="relative w-full aspect-video bg-gray-200 dark:bg-[#151718] overflow-hidden flex-shrink-0">
+                    ${badges}
+                    ${item.thumbnail ? `<img src="${item.thumbnail}" class="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105 z-10" loading="lazy">` : 
+                    `<div class="absolute inset-0 flex items-center justify-center text-gray-400"><i class="ph-fill ph-youtube-logo text-4xl"></i></div>`}
+                    
+                    ${item.duration ? `<div class="absolute bottom-2 right-2 bg-black/80 text-white text-[10px] font-bold px-1.5 py-0.5 rounded z-20">${item.duration}</div>` : ''}
+                </div>
+                <div class="p-4 flex flex-col flex-grow">
+                    <h3 class="font-bold text-gray-900 dark:text-white leading-tight line-clamp-2 text-sm sm:text-base mb-2 group-hover:text-ytGreen transition-colors">${item.title || 'Без названия'}</h3>
+                    
+                    ${item.comment ? `<p class="text-xs text-gray-500 dark:text-gray-400 italic line-clamp-2 mb-3 break-words leading-snug"><i class="ph-bold ph-quotes"></i> ${item.comment}</p>` : ''}
+                    
+                    <div class="flex items-center justify-between text-xs font-semibold mt-auto pt-1 w-full overflow-hidden gap-2">
+                        <div class="flex items-center text-gray-500 dark:text-gray-400 truncate flex-grow min-w-0">
+                            <i class="ph-fill ph-user-circle text-lg mr-1.5 flex-shrink-0"></i>
+                            <span class="truncate">${item.channel || 'Неизвестный канал'}</span>
+                        </div>
+                        ${item.category && YT_CATEGORIES[item.category] ? `<span class="bg-gray-100 dark:bg-[#151718] text-gray-600 dark:text-gray-400 px-2 py-1 rounded-md flex-shrink-0 uppercase tracking-wider text-[9px] border border-gray-200 dark:border-gray-800">${YT_CATEGORIES[item.category]}</span>` : ''}
+                    </div>
+                </div>
+            `;
+            grid.appendChild(card);
+        });
+    }
+
+    window.changePage = function(delta) {
+        currentPage += delta;
+        renderGrid();
+        document.getElementById('contentGrid').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    };
+
+    window.jumpToPage = function() {
+        const input = document.getElementById('pageJumpInput');
+        if(!input) return;
+        let p = parseInt(input.value);
+        if (!p || p < 1) return;
+        const processedData = groupSeasons(contentData);
+        let filteredData = processedData.filter(item => {
+            const mSearch = (item.title||'').toLowerCase().includes(currentFilters.search.toLowerCase());
+            const mType = currentFilters.type === 'all' || item.type === currentFilters.type;
+            const mStatus = currentFilters.status === 'all' || item.status === currentFilters.status;
+            let mGenre = true;
+            if (currentFilters.genre) {
+                const hasInArray = item.genres && item.genres.includes(currentFilters.genre);
+                mGenre = hasInArray || (item.genre && item.genre.toLowerCase().includes((ALL_GENRES[currentFilters.genre]?.label||'').toLowerCase()));
+            }
+            const mBest = currentFilters.bestOnly ? ((item.rating && item.rating >= 7.5) || item.isTop) : true;
+            return mSearch && mType && mStatus && mGenre && mBest;
+        });
+        const totalPages = Math.ceil(filteredData.length / ITEMS_PER_PAGE);
+        if (p > totalPages) p = totalPages;
+        currentPage = p;
+        input.value = '';
+        renderGrid();
+        document.getElementById('contentGrid').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    };
+
+    window.setFilter = function(filterType, value) {
+        currentFilters[filterType] = value;
+        currentPage = 1;
+        const buttons = document.querySelectorAll(`.${filterType}-filter`);
+        buttons.forEach(btn => {
+            if (btn.dataset.value === value) {
+                btn.classList.remove('bg-white', 'text-gray-600', 'dark:bg-[#222426]', 'dark:text-gray-300');
+                btn.classList.add('bg-ytGreen/20', 'text-ytGreen', 'dark:bg-ytGreen/20', 'dark:text-ytGreen', 'active');
+            } else {
+                btn.classList.add('bg-white', 'text-gray-600', 'dark:bg-[#222426]', 'dark:text-gray-300');
+                btn.classList.remove('bg-ytGreen/20', 'text-ytGreen', 'dark:bg-ytGreen/20', 'dark:text-ytGreen', 'active');
+            }
+        });
+        renderGrid();
+    };
+
+    window.toggleBestFilter = function() {
+        currentFilters.bestOnly = !currentFilters.bestOnly;
+        currentPage = 1;
+        const btn = document.getElementById('btnBest');
+        if (currentFilters.bestOnly) {
+            btn.classList.remove('bg-yellow-50', 'text-yellow-600', 'border-yellow-200', 'dark:bg-[#222426]', 'dark:border-yellow-700/30', 'dark:text-yellow-500');
+            btn.classList.add('bg-gradient-to-r', 'from-yellow-400', 'to-yellow-500', 'text-yellow-900', 'border-yellow-500', 'shadow-md');
+        } else {
+            btn.classList.add('bg-yellow-50', 'text-yellow-600', 'border-yellow-200', 'dark:bg-[#222426]', 'dark:border-yellow-700/30', 'dark:text-yellow-500');
+            btn.classList.remove('bg-gradient-to-r', 'from-yellow-400', 'to-yellow-500', 'text-yellow-900', 'border-yellow-500', 'shadow-md');
+        }
+        renderGrid();
+    };
+
+    window.toggleAdvancedFilters = function() {
+        const div = document.getElementById('advancedFilters');
+        if (div.classList.contains('hidden')) {
+            div.classList.remove('hidden');
+        } else {
+            div.classList.add('hidden');
+            selectCustomGenre('', 'Всё');
+            document.getElementById('filterDirector').value = '';
+            document.getElementById('filterYear').value = '';
+            currentFilters.genre = currentFilters.director = currentFilters.year = '';
+            currentPage = 1;
+            renderGrid();
+        }
+    };
+
+    const viewModal = document.getElementById('viewModal');
+    
+    window.openViewModal = function(id) {
+        let item;
+        let isGroup = false;
+        
+        if (id.toString().startsWith('group_')) {
+            const processed = groupSeasons(contentData);
+            item = processed.find(i => i.id === id);
+            isGroup = true;
+        } else {
+            item = contentData.find(i => i.id === id);
+        }
+        
+        if (!item) return;
+        document.body.classList.add('modal-open');
+
+        const typeInfo = TYPE_CONFIG[item.type] || TYPE_CONFIG['unknown'];
+        const statusInfo = STATUS_CONFIG[item.status] || STATUS_CONFIG['planning'];
+
+        const viewPoster = document.getElementById('viewPoster');
+        if (item.poster) { viewPoster.src = item.poster; viewPoster.style.display = 'block'; } 
+        else { viewPoster.style.display = 'none'; }
+        
+        document.getElementById('viewFallbackText').textContent = item.title || '';
+        document.getElementById('viewTitle').textContent = item.title || '';
+        document.getElementById('viewType').textContent = typeInfo.label;
+        document.getElementById('viewType').className = `inline-flex items-center gap-1 px-3 py-1 rounded-lg text-xs font-bold uppercase tracking-wider ${typeInfo.badge}`;
+        document.getElementById('viewStatus').textContent = statusInfo.label;
+        document.getElementById('viewStatus').className = `inline-flex items-center gap-1 px-3 py-1 rounded-lg text-xs font-bold uppercase tracking-wider ${statusInfo.badge}`;
+        document.getElementById('viewYear').textContent = item.year || 'Неизвестно';
+        
+        if (item.rating) {
+            document.getElementById('viewRatingBadge').classList.remove('hidden');
+            document.getElementById('viewRating').textContent = item.rating;
+        } else document.getElementById('viewRatingBadge').classList.add('hidden');
+
+        if (item.duration) {
+            document.getElementById('viewDurationWrap').classList.remove('hidden');
+            document.getElementById('viewDuration').textContent = formatTime(item.duration);
+        } else document.getElementById('viewDurationWrap').classList.add('hidden');
+
+        if (item.isTop) document.getElementById('viewIsTopBadge').classList.remove('hidden');
+        else document.getElementById('viewIsTopBadge').classList.add('hidden');
+
+        if (item.director) {
+            document.getElementById('viewDirectorWrap').classList.remove('hidden');
+            document.getElementById('viewDirector').textContent = item.director;
+        } else document.getElementById('viewDirectorWrap').classList.add('hidden');
+
+        const genresWrap = document.getElementById('viewGenresWrap');
+        const genresContainer = document.getElementById('viewGenres');
+        genresContainer.innerHTML = '';
+        let hasGenres = false;
+        if (item.genres && item.genres.length > 0) {
+            item.genres.forEach(gid => {
+                const gConf = ALL_GENRES[gid];
+                if(gConf) { genresContainer.innerHTML += `<span class="px-3 py-1 rounded-lg text-xs font-bold shadow-sm ${gConf.color}">${gConf.label}</span>`; hasGenres = true; }
+            });
+        } else if (item.genre) {
+            genresContainer.innerHTML = `<span class="px-3 py-1 rounded-lg text-xs font-bold shadow-sm bg-gray-200 text-gray-800 dark:bg-gray-700 dark:text-gray-200">${item.genre}</span>`;
+            hasGenres = true;
+        }
+        if(hasGenres) genresWrap.classList.remove('hidden'); else genresWrap.classList.add('hidden');
+
+        if (item.comment) {
+            document.getElementById('viewCommentWrap').classList.remove('hidden');
+            document.getElementById('viewComment').textContent = item.comment;
+        } else document.getElementById('viewCommentWrap').classList.add('hidden');
+
+        const link1 = document.getElementById('viewLink1');
+        const link2 = document.getElementById('viewLink2');
+        const linksWrap = document.getElementById('viewLinksWrap');
+        
+        link1.className = 'hidden flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-6 py-3 bg-[#f50] hover:bg-[#ff661a] text-white rounded-xl font-bold transition-all shadow-md hover:shadow-lg text-sm whitespace-nowrap min-w-[160px]';
+        link2.className = 'hidden flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-6 py-3 bg-[#f5c518] hover:bg-[#e3b516] text-black rounded-xl font-bold transition-all shadow-md hover:shadow-lg text-sm whitespace-nowrap min-w-[160px]';
+
+        let hasLinks = false;
+        if(item.type === 'game') {
+            if(item.kpUrl) { link1.href = item.kpUrl; link1.innerHTML = '<i class="ph-bold ph-steam-logo text-xl"></i> Steam'; link1.className = link1.className.replace('bg-[#f50] hover:bg-[#ff661a]', 'bg-[#171a21] hover:bg-[#2a475e]'); link1.classList.remove('hidden'); hasLinks = true; }
+            if(item.imdbUrl) { link2.href = item.imdbUrl; link2.innerHTML = '<i class="ph-bold ph-game-controller text-xl"></i> Metacritic'; link2.className = link2.className.replace('bg-[#f5c518] hover:bg-[#e3b516]', 'bg-[#ffcc33] hover:bg-[#ffdf73]'); link2.classList.remove('hidden'); hasLinks = true; }
+        } else {
+            if (item.kpUrl) { link1.href = item.kpUrl; link1.innerHTML = 'Кинопоиск'; link1.classList.remove('hidden'); hasLinks = true; }
+            if (item.imdbUrl) { link2.href = item.imdbUrl; link2.innerHTML = '<i class="ph-bold ph-imdb-logo text-xl"></i> IMDb'; link2.classList.remove('hidden'); hasLinks = true; }
+        }
+        if (hasLinks) linksWrap.classList.remove('hidden'); else linksWrap.classList.add('hidden');
+
+        const seasonsWrap = document.getElementById('viewSeasonsWrap');
+        const seasonsList = document.getElementById('viewSeasonsList');
+        if (isGroup && item.children.length > 0) {
+            seasonsList.innerHTML = '';
+            item.children.forEach(child => {
+                const sStatus = STATUS_CONFIG[child.status] || STATUS_CONFIG['planning'];
+                seasonsList.innerHTML += `
+                    <div class="flex items-center justify-between bg-gray-50 dark:bg-[#151718] p-3 rounded-xl border border-gray-100 dark:border-gray-800">
+                        <div class="flex flex-col">
+                            <span class="font-bold text-gray-900 dark:text-white text-sm">${child.title}</span>
+                            <div class="flex gap-2 items-center mt-1">
+                                <span class="text-[10px] font-bold uppercase ${sStatus.color}">${sStatus.label}</span>
+                                ${child.rating ? `<span class="text-[10px] font-bold text-yellow-500 flex items-center gap-0.5"><i class="ph-fill ph-star"></i>${child.rating}</span>` : ''}
+                            </div>
+                        </div>
+                        <button onclick="window.editItem('${child.id}', event); window.closeViewModal();" class="admin-only p-2 text-gray-400 hover:text-ytGreen bg-white dark:bg-[#222426] rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 transition-colors">
+                            <i class="ph-bold ph-pencil-simple"></i>
+                        </button>
+                    </div>
+                `;
+            });
+            seasonsWrap.classList.remove('hidden');
+        } else {
+            seasonsWrap.classList.add('hidden');
+        }
+
+        viewModal.classList.remove('hidden');
+        setTimeout(() => { viewModal.classList.remove('opacity-0'); viewModal.children[0].classList.remove('scale-95'); }, 10);
+    };
+
+    window.closeViewModal = function(e) {
+        if (!e || e.target === viewModal || e.target.closest('button.absolute')) {
+            document.body.classList.remove('modal-open');
+            viewModal.classList.add('opacity-0');
+            viewModal.children[0].classList.add('scale-95');
+            setTimeout(() => viewModal.classList.add('hidden'), 300);
+        }
+    };
+
+    const setModal = document.getElementById('settingsModal');
+    window.openSettingsModal = function() {
+        if(!isAdmin) return;
+        document.body.classList.add('modal-open');
+        const container = document.getElementById('socialLinksContainer');
+        const shiki = container.querySelector('a[href*="shikimori"]')?.href || '';
+        const tgProf = container.querySelector('a[href*="t.me"]:not(:has(.ph-users))')?.href || '';
+        const tgChan = container.querySelector('a:has(.ph-users)')?.href || '';
+        
+        document.getElementById('settingShiki').value = shiki;
+        document.getElementById('settingTgProfile').value = tgProf;
+        document.getElementById('settingTgChannel').value = tgChan;
+
+        setModal.classList.remove('hidden');
+        setTimeout(() => { setModal.classList.remove('opacity-0'); setModal.children[0].classList.remove('scale-95'); }, 10);
+    };
+
+    window.closeSettingsModal = function() {
+        document.body.classList.remove('modal-open');
+        setModal.classList.add('opacity-0');
+        setModal.children[0].classList.add('scale-95');
+        setTimeout(() => setModal.classList.add('hidden'), 300);
+    };
+
+    const settingsForm = document.getElementById('settingsForm');
+    if(settingsForm) {
+        settingsForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if(!isAdmin || !auth.currentUser) return;
+            const newSettings = { shiki: document.getElementById('settingShiki').value, tgProfile: document.getElementById('settingTgProfile').value, tgChannel: document.getElementById('settingTgChannel').value };
+            try { await setDoc(settingsDocRef, newSettings); closeSettingsModal(); } 
+            catch(err) { console.error("Ошибка настроек", err); }
+        });
+    }
+
+    const modal = document.getElementById('itemModal');
+    const modalContent = document.getElementById('modalContent');
+    const form = document.getElementById('itemForm');
+
+    function updateFormForType(type) {
+        const isGame = type === 'game';
+        const magicWandBtn = document.getElementById('magicWandBtn');
+        if(magicWandBtn) magicWandBtn.style.display = isGame ? 'none' : 'flex';
+        
+        const labelLink1 = document.getElementById('labelLink1');
+        const labelLink2 = document.getElementById('labelLink2');
+        if(labelLink1) labelLink1.textContent = isGame ? 'Ссылка Steam' : 'Ссылка Кинопоиск';
+        if(labelLink2) labelLink2.textContent = isGame ? 'Ссылка Metacritic' : 'Ссылка IMDb';
+        renderGenreSelection(type);
+    }
+
+    const itemTypeSelect = document.getElementById('itemType');
+    if(itemTypeSelect) {
+        itemTypeSelect.addEventListener('change', (e) => {
+            selectedGenres = [];
+            updateFormForType(e.target.value);
+        });
+    }
+
+    window.openModal = function() {
+        if (!isAdmin) return;
+        document.body.classList.add('modal-open');
+        if(form) form.reset();
+        document.getElementById('itemId').value = '';
+        document.getElementById('itemLegacyGenre').value = '';
+        selectedGenres = [];
+        updateFormForType(document.getElementById('itemType').value);
+        document.getElementById('modalTitle').textContent = 'Добавить запись';
+        modal.classList.remove('hidden');
+        setTimeout(() => { modal.classList.remove('opacity-0'); modalContent.classList.remove('scale-95'); }, 10);
+    };
+
+    window.closeModal = function() {
+        document.body.classList.remove('modal-open');
+        modal.classList.add('opacity-0');
+        modalContent.classList.add('scale-95');
+        setTimeout(() => modal.classList.add('hidden'), 300);
+    };
+
+    window.autoFillData = async function() {
+        const titleInput = document.getElementById('itemTitle').value;
+        if (!titleInput) { 
+            // Replace alert with a styled modal or toast in a real app, but using simple fallback for now
+            console.warn("Сначала введите название для поиска!"); 
+            return; 
+        }
+        
+        const btn = document.getElementById('magicWandBtn');
+        const originalHtml = btn.innerHTML;
+        btn.innerHTML = '<i class="ph-bold ph-spinner animate-spin text-xl"></i>';
+        btn.disabled = true;
+
+        try {
+            const searchUrl = `https://kinopoiskapiunofficial.tech/api/v2.1/films/search-by-keyword?keyword=${encodeURIComponent(titleInput)}&page=1`;
+            const searchRes = await fetch(searchUrl, { headers: { 'X-API-KEY': KINOPOISK_API_KEY, 'Content-Type': 'application/json' } });
+            
+            if(!searchRes.ok) throw new Error("Network response was not ok");
+            
+            const searchData = await searchRes.json();
+
+            if (searchData.films && searchData.films.length > 0) {
+                const film = searchData.films[0];
+                document.getElementById('itemYear').value = film.year || '';
+                
+                if (film.filmLength) {
+                    let durationStr = String(film.filmLength);
+                    if (durationStr.includes(':')) {
+                        const parts = durationStr.split(':');
+                        const h = parseInt(parts[0]) || 0;
+                        const m = parseInt(parts[1]) || 0;
+                        document.getElementById('itemDuration').value = (h * 60) + m;
+                    } else {
+                        const durationMatch = durationStr.match(/\d+/);
+                        if (durationMatch) document.getElementById('itemDuration').value = durationMatch[0];
+                    }
+                }
+                
+                if (film.posterUrl || film.posterUrlPreview) document.getElementById('itemPoster').value = film.posterUrl || film.posterUrlPreview;
+                if (film.filmId) document.getElementById('itemKpUrl').value = `https://www.kinopoisk.ru/film/${film.filmId}/`;
+
+                if (film.genres && film.genres.length > 0) {
+                    selectedGenres = [];
+                    film.genres.forEach(g => {
+                        const kpGenre = g.genre.toLowerCase();
+                        for (const [id, conf] of Object.entries(MOVIE_GENRES)) {
+                            if (conf.label.toLowerCase() === kpGenre && !selectedGenres.includes(id)) {
+                                selectedGenres.push(id);
+                                break;
+                            }
+                        }
+                    });
+                    updateGenreSelectionUI();
+                }
+
+                if (film.filmId) {
+                    try {
+                        const staffUrl = `https://kinopoiskapiunofficial.tech/api/v1/staff?filmId=${film.filmId}`;
+                        const staffRes = await fetch(staffUrl, { headers: { 'X-API-KEY': KINOPOISK_API_KEY, 'Content-Type': 'application/json' } });
+                        if(staffRes.ok) {
+                            const staffData = await staffRes.json();
+                            const director = staffData.find(s => s.professionKey === 'DIRECTOR');
+                            if (director) document.getElementById('itemDirector').value = director.nameRu || director.nameEn || '';
+                        }
+                    } catch (e) { console.log("Не удалось загрузить режиссера", e); }
+                }
+            } else {
+                console.warn("Ничего не найдено на Кинопоиске :(");
+            }
+        } catch (error) {
+            console.error(error);
+            console.warn("Ошибка при обращении к API Кинопоиска.");
+        } finally {
+            btn.innerHTML = originalHtml;
+            btn.disabled = false;
+        }
+    };
+
+    const ytModal = document.getElementById('youtubeModal');
+    const ytModalContent = document.getElementById('youtubeModalContent');
+    const ytForm = document.getElementById('youtubeForm');
+
+    window.openYoutubeModal = function() {
+        if (!isAdmin) return;
+        document.body.classList.add('modal-open');
+        if(ytForm) ytForm.reset();
+        document.getElementById('ytItemId').value = '';
+        document.getElementById('ytThumbnailUrl').value = '';
+        document.getElementById('ytTitle').value = '';
+        document.getElementById('ytChannel').value = '';
+        document.getElementById('ytDuration').value = '';
+        document.getElementById('ytIsPriority').value = 'false';
+        document.getElementById('ytPriorityToggle').children[0].classList.remove('active');
+        
+        document.getElementById('ytPreviewImg').src = '';
+        document.getElementById('ytPreviewImg').classList.add('hidden');
+        document.getElementById('ytPreviewPlaceholder').classList.remove('hidden');
+        document.getElementById('ytAutoData').classList.add('hidden');
+        
+        document.querySelectorAll('.category-radio').forEach(r => r.checked = false);
+        
+        document.getElementById('ytModalTitle').textContent = 'Добавить видео';
+        
+        ytModal.classList.remove('hidden');
+        setTimeout(() => { ytModal.classList.remove('opacity-0'); ytModalContent.classList.remove('scale-95'); }, 10);
+    }
+    
+    window.closeYoutubeModal = function() {
+        document.body.classList.remove('modal-open');
+        ytModal.classList.add('opacity-0');
+        ytModalContent.classList.add('scale-95');
+        setTimeout(() => ytModal.classList.add('hidden'), 300);
+    }
+    
+    window.toggleYtPriority = function() {
+        const input = document.getElementById('ytIsPriority');
+        const icon = document.getElementById('ytPriorityToggle').children[0];
+        if (input.value === 'true') {
+            input.value = 'false';
+            icon.classList.remove('active');
+        } else {
+            input.value = 'true';
+            icon.classList.add('active');
+        }
+    }
+    
+    window.fetchYoutubeData = async function(url) {
+        if(!url) return;
+        const regExp = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i;
+        const match = url.match(regExp);
+        
+        if (match && match[1]) {
+            const videoId = match[1];
+            
+            const thumbUrl = `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`; 
+            document.getElementById('ytThumbnailUrl').value = thumbUrl;
+            
+            const imgEl = document.getElementById('ytPreviewImg');
+            imgEl.src = thumbUrl;
+            imgEl.classList.remove('hidden');
+            document.getElementById('ytPreviewPlaceholder').classList.add('hidden');
+            
+            imgEl.onerror = function() {
+                this.src = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
+                this.onerror = null;
+            }
+
+            if (!YOUTUBE_API_KEY || YOUTUBE_API_KEY === "ВСТАВЬ_СЮДА_НОВЫЙ_КЛЮЧ" || YOUTUBE_API_KEY === "") return;
+
+            try {
+                const apiUrl = `https://www.googleapis.com/youtube/v3/videos?id=${videoId}&part=snippet,contentDetails&key=${YOUTUBE_API_KEY}`;
+                const res = await fetch(apiUrl);
+                if(!res.ok) return;
+                
+                const data = await res.json();
+                
+                if(data.error) {
+                    console.error("Ошибка от YouTube: " + data.error.message);
+                    return;
+                }
+
+                if (data.items && data.items.length > 0) {
+                    const videoInfo = data.items[0];
+                    
+                    document.getElementById('ytTitle').value = videoInfo.snippet.title;
+                    document.getElementById('ytChannel').value = videoInfo.snippet.channelTitle;
+                    
+                    document.getElementById('ytAutoTitle').textContent = videoInfo.snippet.title;
+                    document.getElementById('ytAutoChannel').textContent = videoInfo.snippet.channelTitle;
+                    
+                    const durationIso = videoInfo.contentDetails.duration;
+                    const durationMatch = durationIso.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
+                    let durationStr = "";
+                    if (durationMatch) {
+                        const h = parseInt(durationMatch[1]) || 0;
+                        const m = parseInt(durationMatch[2]) || 0;
+                        const s = parseInt(durationMatch[3]) || 0;
+                        
+                        if (h > 0) durationStr += `${h}:`;
+                        durationStr += `${h > 0 ? m.toString().padStart(2, '0') : m}:${s.toString().padStart(2, '0')}`;
+                        document.getElementById('ytDuration').value = durationStr;
+                        document.getElementById('ytAutoDuration').textContent = durationStr;
+                    }
+                    
+                    document.getElementById('ytAutoData').classList.remove('hidden');
+                    document.getElementById('ytAutoData').classList.add('flex');
+                }
+            } catch (error) {
+                console.error("Ошибка YouTube API", error);
+            }
+        }
+    }
+
+    window.editItem = function(id, event) {
+        if (!isAdmin) return;
+        if(event) { event.preventDefault(); event.stopPropagation(); }
+        
+        const item = contentData.find(i => i.id === id);
+        if (!item) return;
+
+        document.body.classList.add('modal-open');
+        document.getElementById('itemId').value = item.id;
+        document.getElementById('itemTitle').value = item.title;
+        document.getElementById('itemType').value = item.type;
+        updateFormForType(item.type);
+
+        document.getElementById('itemStatus').value = item.status;
+        document.getElementById('itemRating').value = item.rating || '';
+        document.getElementById('itemYear').value = item.year || '';
+        document.getElementById('itemDuration').value = item.duration || '';
+        document.getElementById('itemDirector').value = item.director || '';
+        document.getElementById('itemIsTop').checked = item.isTop || false;
+        document.getElementById('itemPoster').value = item.poster || '';
+        document.getElementById('itemKpUrl').value = item.kpUrl || '';
+        document.getElementById('itemImdbUrl').value = item.imdbUrl || '';
+        document.getElementById('itemComment').value = item.comment || '';
+        document.getElementById('itemLegacyGenre').value = item.genre || '';
+        
+        selectedGenres = item.genres || [];
+        updateGenreSelectionUI();
+
+        document.getElementById('modalTitle').textContent = 'Редактировать запись';
+        modal.classList.remove('hidden');
+        setTimeout(() => { modal.classList.remove('opacity-0'); modalContent.classList.remove('scale-95'); }, 10);
+    };
+    
+    window.editYoutubeItem = function(id, event) {
+        if (!isAdmin) return;
+        if(event) { event.preventDefault(); event.stopPropagation(); }
+        
+        const item = youtubeData.find(i => i.id === id);
+        if (!item) return;
+
+        document.body.classList.add('modal-open');
+        document.getElementById('ytItemId').value = item.id;
+        document.getElementById('ytUrl').value = item.url || '';
+        document.getElementById('ytTitle').value = item.title || '';
+        document.getElementById('ytChannel').value = item.channel || '';
+        document.getElementById('ytDuration').value = item.duration || '';
+        document.getElementById('ytComment').value = item.comment || '';
+        
+        const isPriority = item.isPriority === true;
+        document.getElementById('ytIsPriority').value = isPriority ? 'true' : 'false';
+        if(isPriority) document.getElementById('ytPriorityToggle').children[0].classList.add('active');
+        else document.getElementById('ytPriorityToggle').children[0].classList.remove('active');
+        
+        if (item.category) {
+            const radio = document.querySelector(`input[name="ytCategory"][value="${item.category}"]`);
+            if(radio) radio.checked = true;
+        }
+        
+        if (item.thumbnail) {
+            document.getElementById('ytThumbnailUrl').value = item.thumbnail;
+            document.getElementById('ytPreviewImg').src = item.thumbnail;
+            document.getElementById('ytPreviewImg').classList.remove('hidden');
+            document.getElementById('ytPreviewPlaceholder').classList.add('hidden');
+            
+            document.getElementById('ytAutoTitle').textContent = item.title;
+            document.getElementById('ytAutoChannel').textContent = item.channel;
+            document.getElementById('ytAutoDuration').textContent = item.duration;
+            document.getElementById('ytAutoData').classList.remove('hidden');
+            document.getElementById('ytAutoData').classList.add('flex');
+        }
+
+        document.getElementById('ytModalTitle').textContent = 'Редактировать видео';
+        ytModal.classList.remove('hidden');
+        setTimeout(() => { ytModal.classList.remove('opacity-0'); ytModalContent.classList.remove('scale-95'); }, 10);
+    }
+
+    const confirmModal = document.getElementById('confirmModal');
+    
+    window.confirmDelete = function(id, type, event) {
+        if (!isAdmin) return;
+        if(event) { event.preventDefault(); event.stopPropagation(); }
+        itemToDeleteId = id;
+        itemToDeleteType = type;
+        document.body.classList.add('modal-open');
+        confirmModal.classList.remove('hidden');
+        setTimeout(() => { confirmModal.classList.remove('opacity-0'); confirmModal.children[0].classList.remove('scale-95'); }, 10);
+    }
+
+    window.closeConfirmModal = function() {
+        document.body.classList.remove('modal-open');
+        confirmModal.classList.add('opacity-0');
+        confirmModal.children[0].classList.add('scale-95');
+        setTimeout(() => { confirmModal.classList.add('hidden'); itemToDeleteId = null; }, 200);
+    }
+
+    const confirmBtn = document.getElementById('confirmBtn');
+    if(confirmBtn) {
+        confirmBtn.addEventListener('click', async () => {
+            if (!isAdmin || !auth.currentUser || !itemToDeleteId) return;
+            try {
+                if(itemToDeleteType === 'youtube') {
+                    await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'youtube_items', itemToDeleteId));
+                } else {
+                    await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'tracker_items', itemToDeleteId));
+                }
+                closeConfirmModal();
+            } catch(e) { console.error("Ошибка удаления:", e); }
+        });
+    }
+
+    function setupEventListeners() {
+        const globalSearch = document.getElementById('globalSearchInput');
+        if(globalSearch) {
+            globalSearch.addEventListener('input', (e) => { 
+                const val = e.target.value;
+                if(currentTab === 'main') {
+                    currentFilters.search = val; currentPage = 1; renderGrid(); 
+                } else {
+                    ytFilters.search = val; renderYoutubeGrid();
+                }
+            });
+        }
+        
+        const filterDir = document.getElementById('filterDirector');
+        if(filterDir) filterDir.addEventListener('input', (e) => { currentFilters.director = e.target.value; currentPage = 1; renderGrid(); });
+        
+        const filterYear = document.getElementById('filterYear');
+        if(filterYear) filterYear.addEventListener('input', (e) => { currentFilters.year = e.target.value; currentPage = 1; renderGrid(); });
+
+        if(form) {
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                if (!isAdmin || !auth.currentUser) return;
+
+                const id = document.getElementById('itemId').value;
+                const newItem = {
+                    title: document.getElementById('itemTitle').value,
+                    type: document.getElementById('itemType').value,
+                    status: document.getElementById('itemStatus').value,
+                    rating: document.getElementById('itemRating').value ? parseFloat(document.getElementById('itemRating').value) : null,
+                    year: document.getElementById('itemYear').value ? parseInt(document.getElementById('itemYear').value) : null,
+                    duration: document.getElementById('itemDuration').value ? parseInt(document.getElementById('itemDuration').value) : null,
+                    director: document.getElementById('itemDirector').value,
+                    genres: selectedGenres,
+                    genre: document.getElementById('itemLegacyGenre').value,
+                    isTop: document.getElementById('itemIsTop').checked,
+                    poster: document.getElementById('itemPoster').value,
+                    kpUrl: document.getElementById('itemKpUrl').value,
+                    imdbUrl: document.getElementById('itemImdbUrl').value,
+                    comment: document.getElementById('itemComment').value
+                };
+
+                try {
+                    if (id) await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'tracker_items', id), newItem);
+                    else await addDoc(itemsCollection, newItem);
+                    closeModal();
+                } catch (error) { console.error("Ошибка сохранения:", error); }
+            });
+        }
+        
+        if(ytForm) {
+            ytForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                if (!isAdmin || !auth.currentUser) return;
+                
+                const selectedCat = document.querySelector('input[name="ytCategory"]:checked');
+
+                const id = document.getElementById('ytItemId').value;
+                const newItem = {
+                    url: document.getElementById('ytUrl').value,
+                    title: document.getElementById('ytTitle').value,
+                    channel: document.getElementById('ytChannel').value,
+                    duration: document.getElementById('ytDuration').value,
+                    thumbnail: document.getElementById('ytThumbnailUrl').value,
+                    category: selectedCat ? selectedCat.value : null,
+                    isPriority: document.getElementById('ytIsPriority').value === 'true',
+                    comment: document.getElementById('ytComment').value,
+                    addedAt: new Date()
+                };
+
+                try {
+                    if (id) {
+                        delete newItem.addedAt; 
+                        await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'youtube_items', id), newItem);
+                    }
+                    else await addDoc(youtubeCollection, newItem);
+                    closeYoutubeModal();
+                } catch (error) { console.error("Ошибка сохранения YT:", error); }
+            });
+        }
+    }
+
+    // Call init on load
+    init();
+</script>
+</body>
+</html>
