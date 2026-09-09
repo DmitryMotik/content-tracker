@@ -212,6 +212,21 @@
 
     <div id="youtubeContainer" class="hidden">
         
+        <div class="flex justify-between items-center bg-gray-100 dark:bg-ytGray/40 p-4 rounded-2xl border border-gray-200 dark:border-white/5 mb-6">
+            <div class="flex items-center gap-4">
+                <div class="w-12 h-12 rounded-full bg-ytGreen/20 flex items-center justify-center text-ytGreen shrink-0">
+                    <i class="ph-fill ph-monitor-play text-2xl"></i>
+                </div>
+                <div>
+                    <div class="text-xs font-bold text-gray-500 dark:text-ytLightGray uppercase tracking-wider">Просмотрено видео</div>
+                    <div id="ytWatchedCountDisplay" class="text-2xl font-black text-gray-900 dark:text-white leading-none mt-1">0</div>
+                </div>
+            </div>
+            <button onclick="openEditYtCountModal()" class="admin-only bg-white dark:bg-ytGray border border-gray-200 dark:border-white/10 hover:border-ytGreen text-gray-500 hover:text-ytGreen p-2.5 rounded-xl transition-colors shadow-sm">
+                <i class="ph-bold ph-pencil-simple text-xl"></i>
+            </button>
+        </div>
+
         <div class="flex gap-2 overflow-x-auto hide-scrollbar mb-6 pb-2 bg-gray-100 dark:bg-ytGray/40 p-4 rounded-2xl border border-gray-200 dark:border-white/5" id="ytFiltersContainer">
         </div>
 
@@ -525,6 +540,23 @@
     </div>
 </div>
 
+<div id="editYtCountModal" class="fixed inset-0 bg-gray-900/80 hidden z-[70] flex items-center justify-center p-4 opacity-0 transition-opacity duration-200 backdrop-blur-sm">
+    <div class="bg-white dark:bg-ytGray rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden transform scale-95 transition-transform duration-200 border border-gray-200 dark:border-white/10 p-6 text-center" id="editYtCountContent">
+        <div class="w-16 h-16 bg-ytGreen/20 text-ytGreen rounded-full flex items-center justify-center mx-auto mb-4">
+            <i class="ph-fill ph-monitor-play text-3xl"></i>
+        </div>
+        <h2 class="text-xl font-black text-gray-900 dark:text-white mb-2">Счетчик видео</h2>
+        <p class="text-sm text-gray-500 dark:text-ytLightGray mb-5 font-medium">Введите общее количество просмотренных роликов на YouTube</p>
+        <input type="number" id="ytCountInput" min="0" class="w-full px-4 py-3 bg-gray-50 dark:bg-black/30 border border-gray-200 dark:border-white/10 rounded-xl text-center font-black text-2xl text-gray-900 dark:text-white outline-none mb-6 focus:ring-1 focus:ring-ytGreen">
+        <div class="flex gap-3">
+            <button onclick="closeEditYtCountModal()" class="flex-1 py-3 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-ytBlack hover:bg-gray-200 dark:hover:bg-black/80 rounded-xl font-bold transition-colors">Отмена</button>
+            <button onclick="saveYtCount()" class="flex-1 py-3 text-white bg-ytGreen hover:bg-ytGreenHover rounded-xl font-bold transition-colors flex items-center justify-center gap-2">
+                <i class="ph-bold ph-floppy-disk"></i> Сохранить
+            </button>
+        </div>
+    </div>
+</div>
+
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
     import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
@@ -548,8 +580,10 @@
     const firebaseConfig = myFirebaseConfig;
     
     let app, db, auth, itemsCollection, youtubeCollection, settingsDocRef;
+    let statsDocRef;
     let contentData = [];
     let youtubeData = [];
+    let currentYtWatchedCount = 0;
     let itemToDeleteId = null; 
     let itemToDeleteType = 'main'; 
 
@@ -647,6 +681,7 @@
                 itemsCollection = collection(db, 'artifacts', appId, 'public', 'data', 'tracker_items');
                 youtubeCollection = collection(db, 'artifacts', appId, 'public', 'data', 'youtube_items');
                 settingsDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'socials');
+                statsDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'stats');
 
                 onSnapshot(itemsCollection, (snapshot) => {
                     contentData = snapshot.docs.map(docSnap => ({ id: docSnap.id, ...docSnap.data() }));
@@ -660,6 +695,14 @@
 
                 onSnapshot(settingsDocRef, (docSnap) => {
                     if (docSnap.exists()) updateSocialLinksUI(docSnap.data());
+                });
+
+                onSnapshot(statsDocRef, (docSnap) => {
+                    if (docSnap.exists()) {
+                        const data = docSnap.data();
+                        currentYtWatchedCount = data.youtubeWatchedCount || 0;
+                        document.getElementById('ytWatchedCountDisplay').textContent = currentYtWatchedCount.toLocaleString('ru-RU');
+                    }
                 });
             }).catch((error) => {
                  console.error("Ошибка Firebase Auth:", error);
@@ -1755,6 +1798,34 @@
         confirmModal.classList.add('opacity-0');
         confirmModal.children[0].classList.add('scale-95');
         setTimeout(() => { confirmModal.classList.add('hidden'); itemToDeleteId = null; }, 200);
+    }
+
+    const editYtCountModal = document.getElementById('editYtCountModal');
+    
+    window.openEditYtCountModal = function() {
+        if (!isAdmin) return;
+        document.body.classList.add('modal-open');
+        document.getElementById('ytCountInput').value = currentYtWatchedCount;
+        editYtCountModal.classList.remove('hidden');
+        setTimeout(() => { editYtCountModal.classList.remove('opacity-0'); editYtCountModal.children[0].classList.remove('scale-95'); }, 10);
+    }
+
+    window.closeEditYtCountModal = function() {
+        document.body.classList.remove('modal-open');
+        editYtCountModal.classList.add('opacity-0');
+        editYtCountModal.children[0].classList.add('scale-95');
+        setTimeout(() => editYtCountModal.classList.add('hidden'), 200);
+    }
+
+    window.saveYtCount = async function() {
+        if (!isAdmin || !auth.currentUser) return;
+        const val = parseInt(document.getElementById('ytCountInput').value) || 0;
+        try {
+            await setDoc(statsDocRef, { youtubeWatchedCount: val }, { merge: true });
+            closeEditYtCountModal();
+        } catch (e) {
+            console.error("Ошибка сохранения счетчика:", e);
+        }
     }
 
     document.getElementById('confirmBtn').addEventListener('click', async () => {
