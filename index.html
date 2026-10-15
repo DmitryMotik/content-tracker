@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="ru" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Мой Трекер Контента</title>
+    <link rel="icon" href="image/tracker_logo.png" type="image/png">
+    <!-- 🔤 Шрифты: Onest (текст) + Unbounded (заголовки, логотип) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700;800&family=Unbounded:wght@500;600;700&display=swap" rel="stylesheet">
+    <!-- 🧩 Подключения: Tailwind → его настройки (цвета!) → иконки → НАШ css -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="js/tailwind-config.js"></script>
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="text-gray-800 dark:text-gray-100 pb-10 min-h-screen transition-colors duration-300">
+
+
+<!-- 🧭 ШАПКА: логотип, вкладки, поиск, кнопки (тема / вход / настройки). Цвета и размытие — css/style.css -->
+<header class="bg-white dark:bg-ytBlack border-b border-gray-200 dark:border-white/10 sticky top-0 z-40 shadow-sm transition-colors duration-300">
+    <div class="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8 h-auto sm:h-20 flex flex-col sm:flex-row items-center justify-between gap-4 py-3 sm:py-0">
+        
+        <div class="flex items-center gap-6 w-full sm:w-auto overflow-x-auto hide-scrollbar shrink-0">
+            <div class="flex items-center gap-2 brand font-black text-xl tracking-tight text-gray-900 dark:text-white shrink-0">
+                <i class="ph-fill ph-popcorn text-ytGreen text-3xl"></i>
+                Трекер
+            </div>
+            
+            <div class="flex gap-4 font-bold text-sm text-gray-500 dark:text-ytLightGray h-full pt-1 shrink-0">
+                <!-- Вкладки: название = текст внутри <button>. Логика — switchTab() в js/app.js -->
+                <button onclick="switchTab('main')" id="tabMain" class="tab-btn active hover:text-gray-800 dark:hover:text-white transition-colors pb-3 sm:pb-0 h-full flex items-center gap-1.5 text-base">
+                    Кино / Игры
+                </button>
+                <button onclick="switchTab('youtube')" id="tabYoutube" class="tab-btn hover:text-gray-800 dark:hover:text-white transition-colors pb-3 sm:pb-0 h-full flex items-center gap-1.5 text-base">
+                    Видосы
+                </button>
+            </div>
+        </div>
+
+        <div class="w-full max-w-2xl relative flex-shrink hidden md:block">
+            <i class="ph-bold ph-magnifying-glass absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+            <!-- 🔎 Поиск (ПК). Для телефона есть второй — globalSearchInputMobile -->
+            <input type="text" id="globalSearchInput" placeholder="Поиск..." class="w-full pl-11 pr-4 py-2.5 bg-gray-100 dark:bg-ytGray border border-transparent focus:border-gray-300 dark:focus:border-ytGreen rounded-xl focus:ring-0 dark:text-white outline-none transition-all text-sm font-medium placeholder-gray-500">
+        </div>
+
+        <div class="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end shrink-0">
+            <div class="flex items-center gap-2 text-gray-400">
+                <div id="socialLinksContainer" class="flex items-center gap-1"></div>
+                <button onclick="toggleTheme()" class="p-2 hover:text-yellow-500 transition-colors rounded-lg" title="Переключить тему"><i id="themeIcon" class="ph-fill ph-moon text-xl"></i></button>
+                <button onclick="openPasswordModal()" id="loginBtn" class="p-2 hover:text-ytGreen transition-colors rounded-lg" title="Вход"><i class="ph-fill ph-lock-key text-xl"></i></button>
+                <button onclick="openSettingsModal()" class="admin-only p-2 hover:text-ytGreen transition-colors rounded-lg" title="Настройки"><i class="ph-fill ph-gear text-xl"></i></button>
+                <button onclick="logout()" id="logoutBtn" class="admin-only p-2 hover:text-red-500 transition-colors rounded-lg"><i class="ph-fill ph-sign-out text-xl"></i></button>
+            </div>
+
+            <!-- ИСПРАВЛЕННЫЕ КНОПКИ: Одинаковый размер и правильные ID для переключения -->
+            <div class="admin-only items-center gap-2 h-10">
+                <!-- ➕ Кнопки добавления: видны только админу (класс admin-only) -->
+                <div id="mainActionButtons" class="h-full">
+                    <button onclick="openModal()" class="h-full bg-ytGreen hover:bg-ytGreenHover text-white px-5 rounded-xl text-sm font-bold shadow-md transition-colors flex items-center justify-center gap-2 w-full sm:w-[190px]">
+                        <i class="ph-bold ph-plus text-lg"></i> Новая запись
+                    </button>
+                </div>
+                <div id="youtubeActionButtons" class="hidden h-full">
+                    <button onclick="openYoutubeModal()" class="h-full bg-ytGreen hover:bg-ytGreenHover text-white px-5 rounded-xl text-sm font-bold shadow-md transition-colors flex items-center justify-center gap-2 w-full sm:w-[190px]">
+                        <i class="ph-bold ph-video-camera text-lg"></i> Добавить видео
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</header>
+
+<div class="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+
+    <!-- 🎬 ВКЛАДКА «Кино / Игры» -->
+    <div id="mainContainer">
+        <!-- Поиск для мобилок -->
+        <div class="w-full relative flex-shrink md:hidden mb-4">
+            <i class="ph-bold ph-magnifying-glass absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+            <input type="text" id="globalSearchInputMobile" placeholder="Поиск..." class="w-full pl-11 pr-4 py-2.5 bg-gray-100 dark:bg-ytGray border border-transparent focus:border-gray-300 dark:focus:border-ytGreen rounded-xl focus:ring-0 dark:text-white outline-none transition-all text-sm font-medium placeholder-gray-500">
+        </div>
+
+        <div class="flex flex-col xl:flex-row gap-4 justify-between items-start xl:items-center mb-6 bg-gray-100 dark:bg-ytGray/40 p-4 rounded-2xl border border-gray-200 dark:border-white/5">
+            <div class="flex gap-2 overflow-x-auto hide-scrollbar w-full xl:w-auto pb-1">
+                <!-- 🎛 Фильтры по типу. Новый — скопируй кнопку, поменяй data-value и название (+ TYPE_CONFIG в app.js) -->
+                <button onclick="setFilter('type', 'all')" class="filter-btn type-filter active px-4 py-2 rounded-xl text-xs sm:text-sm font-bold whitespace-nowrap bg-ytGreen/20 text-ytGreen dark:bg-ytGreen/20 dark:text-ytGreen" data-value="all">Все форматы</button>
+                <button onclick="setFilter('type', 'movie')" class="filter-btn type-filter px-4 py-2 rounded-xl text-xs sm:text-sm font-bold whitespace-nowrap bg-white text-gray-600 border border-gray-200 hover:bg-gray-50 dark:bg-ytGray dark:border-white/10 dark:text-gray-300 dark:hover:bg-ytGray/80" data-value="movie">Фильмы</button>
+                <button onclick="setFilter('type', 'series')" class="filter-btn type-filter px-4 py-2 rounded-xl text-xs sm:text-sm font-bold whitespace-nowrap bg-white text-gray-600 border border-gray-200 hover:bg-gray-50 dark:bg-ytGray dark:border-white/10 dark:text-gray-300 dark:hover:bg-ytGray/80" data-value="series">Сериалы</button>
+                <button onclick="setFilter('type', 'cartoon')" class="filter-btn type-filter px-4 py-2 rounded-xl text-xs sm:text-sm font-bold whitespace-nowrap bg-white text-gray-600 border border-gray-200 hover:bg-gray-50 dark:bg-ytGray dark:border-white/10 dark:text-gray-300 dark:hover:bg-ytGray/80" data-value="cartoon">Мультфильмы</button>
+                <button onclick="setFilter('type', 'game')" class="filter-btn type-filter px-4 py-2 rounded-xl text-xs sm:text-sm font-bold whitespace-nowrap bg-white text-gray-600 border border-gray-200 hover:bg-gray-50 dark:bg-ytGray dark:border-white/10 dark:text-gray-300 dark:hover:bg-ytGray/80" data-value="game">Игры</button>
+            </div>
+
+            <div class="flex gap-2 overflow-x-auto hide-scrollbar w-full xl:w-auto pb-1 items-center">
+                <button onclick="toggleBestFilter()" id="btnBest" class="flex items-center gap-1.5 px-4 py-2 rounded-xl font-bold text-xs sm:text-sm transition-all text-yellow-600 bg-yellow-50 border border-yellow-200 hover:bg-yellow-100 dark:bg-ytGray dark:border-white/10 dark:text-yellow-500 whitespace-nowrap">
+                    <i class="ph-fill ph-star"></i> Лучшее
+                </button>
+                <div class="w-px h-6 bg-gray-300 dark:bg-gray-700 mx-1"></div>
+                <button onclick="setFilter('status', 'all')" class="filter-btn status-filter active px-4 py-2 rounded-xl text-xs sm:text-sm font-bold whitespace-nowrap bg-ytGreen/20 text-ytGreen dark:bg-ytGreen/20 dark:text-ytGreen" data-value="all">Любой статус</button>
+                <button onclick="setFilter('status', 'watched')" class="filter-btn status-filter px-4 py-2 rounded-xl text-xs sm:text-sm font-bold whitespace-nowrap bg-white text-gray-600 border border-gray-200 hover:bg-gray-50 dark:bg-ytGray dark:border-white/10 dark:text-gray-300 dark:hover:bg-ytGray/80" data-value="watched">Пройдено</button>
+                <button onclick="setFilter('status', 'planning')" class="filter-btn status-filter px-4 py-2 rounded-xl text-xs sm:text-sm font-bold whitespace-nowrap bg-white text-gray-600 border border-gray-200 hover:bg-gray-50 dark:bg-ytGray dark:border-white/10 dark:text-gray-300 dark:hover:bg-ytGray/80" data-value="planning">В планах</button>
+                <button onclick="toggleAdvancedFilters()" class="ml-auto flex items-center justify-center p-2 rounded-xl font-medium text-sm transition-all text-gray-600 bg-white border border-gray-200 hover:bg-gray-50 dark:bg-ytGray dark:border-white/10 dark:text-gray-300 dark:hover:bg-ytGray/80">
+                    <i class="ph-bold ph-sliders-horizontal text-lg"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- 🎛 Доп. фильтры: жанр, режиссёр, год (открываются кнопкой-ползунками) -->
+        <div id="advancedFilters" class="hidden grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6 p-4 bg-white dark:bg-ytGray border border-gray-200 dark:border-white/10 rounded-2xl">
+            <div>
+                <label class="block text-xs font-semibold text-gray-500 dark:text-ytLightGray uppercase tracking-wider mb-1.5 ml-1">Жанр</label>
+                <div class="custom-select-container">
+                    <div class="custom-select-trigger" onclick="toggleCustomSelect(event, 'customGenreSelect')">
+                        <span id="customGenreSelectLabel">Всё</span>
+                        <i class="ph-bold ph-caret-down text-gray-400"></i>
+                    </div>
+                    <div id="customGenreSelect" class="custom-select-dropdown">
+                    </div>
+                </div>
+            </div>
+            <div>
+                <label class="block text-xs font-semibold text-gray-500 dark:text-ytLightGray uppercase tracking-wider mb-1.5 ml-1">Режиссер / Студия</label>
+                <input type="text" id="filterDirector" placeholder="Любой..." class="w-full px-4 py-2 bg-gray-50 dark:bg-black/30 border border-gray-200 dark:border-white/10 rounded-xl text-sm font-medium dark:text-white focus:ring-1 focus:ring-ytGreen outline-none transition-colors">
+            </div>
+            <div>
+                <label class="block text-xs font-semibold text-gray-500 dark:text-ytLightGray uppercase tracking-wider mb-1.5 ml-1">Год</label>
+                <input type="number" id="filterYear" placeholder="Например: 2023" class="w-full px-4 py-2 bg-gray-50 dark:bg-black/30 border border-gray-200 dark:border-white/10 rounded-xl text-sm font-medium dark:text-white focus:ring-1 focus:ring-ytGreen outline-none transition-colors">
+            </div>
+        </div>
+
+        <!-- 🧱 Сетка карточек. Колонки по ширине экрана: grid-cols-2 sm:… 2xl:… в class. Сами карточки — renderGrid() -->
+        <div id="contentGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4 sm:gap-6 scroll-mt-24">
+        </div>
+
+        <!-- ⏭ Пагинация -->
+        <div id="paginationControls" class="hidden flex-wrap justify-center items-center gap-3 mt-8 pb-4">
+            <button id="prevPageBtn" onclick="changePage(-1)" class="px-4 py-2 bg-white dark:bg-ytGray rounded-xl shadow-sm border border-gray-200 dark:border-white/10 disabled:opacity-40 font-bold text-sm hover:bg-gray-50 dark:hover:bg-ytGray/80 transition-colors flex items-center gap-2">
+                <i class="ph-bold ph-caret-left"></i> Назад
+            </button>
+            <span id="pageInfo" class="text-sm font-bold text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-ytGray/50 px-4 py-2 rounded-xl hidden sm:block">Стр 1 / 1</span>
+            <div class="flex items-center gap-1.5 bg-white dark:bg-ytGray px-3 py-1.5 rounded-xl border border-gray-200 dark:border-white/10">
+                <span class="text-sm font-bold text-gray-400">Стр:</span>
+                <input type="number" id="pageJumpInput" min="1" class="w-12 bg-transparent text-center text-sm font-bold dark:text-white outline-none">
+                <button onclick="jumpToPage()" class="text-gray-400 hover:text-ytGreen"><i class="ph-bold ph-arrow-right"></i></button>
+            </div>
+            <button id="nextPageBtn" onclick="changePage(1)" class="px-4 py-2 bg-white dark:bg-ytGray rounded-xl shadow-sm border border-gray-200 dark:border-white/10 disabled:opacity-40 font-bold text-sm hover:bg-gray-50 dark:hover:bg-ytGray/80 transition-colors flex items-center gap-2">
+                Вперед <i class="ph-bold ph-caret-right"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- 📺 ВКЛАДКА «Видосы» -->
+    <div id="youtubeContainer" class="hidden">
+        
+        <div class="flex justify-between items-center bg-gray-100 dark:bg-ytGray/40 p-4 rounded-2xl border border-gray-200 dark:border-white/5 mb-6">
+            <div class="flex items-center gap-4">
+                <div class="w-12 h-12 rounded-full bg-ytGreen/20 flex items-center justify-center text-ytGreen shrink-0">
+                    <i class="ph-fill ph-monitor-play text-2xl"></i>
+                </div>
+                <div>
+                    <div class="text-xs font-bold text-gray-500 dark:text-ytLightGray uppercase tracking-wider">Просмотрено видео</div>
+                    <div id="ytWatchedCountDisplay" class="text-2xl font-black text-gray-900 dark:text-white leading-none mt-1">0</div>
+                </div>
+            </div>
+            <button onclick="openEditYtCountModal()" class="admin-only bg-white dark:bg-ytGray border border-gray-200 dark:border-white/10 hover:border-ytGreen text-gray-500 hover:text-ytGreen p-2.5 rounded-xl transition-colors shadow-sm">
+                <i class="ph-bold ph-pencil-simple text-xl"></i>
+            </button>
+        </div>
+
+        <div class="flex gap-2 overflow-x-auto hide-scrollbar mb-6 pb-2 bg-gray-100 dark:bg-ytGray/40 p-4 rounded-2xl border border-gray-200 dark:border-white/5" id="ytFiltersContainer">
+        </div>
+
+        <div id="youtubeGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 xl:gap-8">
+        </div>
+        
+        <div id="youtubeEmptyState" class="hidden flex flex-col items-center justify-center py-20 text-center">
+            <i class="ph-fill ph-youtube-logo text-6xl text-gray-300 dark:text-ytGray mb-4"></i>
+            <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-2">Нет предложенных видео</h3>
+            <p class="text-gray-500 dark:text-ytLightGray text-sm font-medium">Добавьте ролик, который хотите посмотреть.</p>
+        </div>
+    </div>
+
+    <div id="emptyState" class="hidden flex flex-col items-center justify-center py-20 text-center">
+        <i class="ph-fill ph-ghost text-6xl text-gray-300 dark:text-ytGray mb-4"></i>
+        <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-2">Ничего не найдено</h3>
+        <p class="text-gray-500 dark:text-ytLightGray text-sm font-medium">Попробуйте изменить фильтры.</p>
+    </div>
+</div>
+
+<!-- 🔍 ОКНО просмотра записи -->
+<div id="viewModal" class="fixed inset-0 bg-gray-900/95 hidden z-50 flex items-center justify-center p-4 opacity-0 transition-opacity duration-300 backdrop-blur-sm" onclick="closeViewModal(event)">
+    <div class="bg-white dark:bg-ytBlack rounded-3xl shadow-2xl w-full max-w-5xl overflow-hidden transform scale-95 transition-transform duration-300 relative flex flex-col md:flex-row max-h-[90vh] border border-gray-200 dark:border-white/10" onclick="event.stopPropagation()">
+        
+        <button onclick="closeViewModal()" class="absolute top-4 right-4 bg-gray-200/80 dark:bg-black/50 text-gray-800 dark:text-white hover:bg-gray-300 dark:hover:bg-black/70 p-2.5 rounded-full transition-colors z-40 backdrop-blur-md shadow-lg border border-white/10">
+            <i class="ph-bold ph-x text-lg"></i>
+        </button>
+
+        <div class="md:w-2/5 relative bg-gray-100 dark:bg-black flex-shrink-0 flex items-center justify-center overflow-hidden border-b md:border-b-0 md:border-r border-gray-200 dark:border-white/10 p-6">
+            <div id="viewFallback" class="absolute inset-0 flex items-center justify-center p-6 text-center z-0">
+                 <span id="viewFallbackText" class="text-xl font-black text-gray-400 dark:text-gray-700 uppercase tracking-widest break-words w-full line-clamp-4"></span>
+            </div>
+            <img id="viewPoster" src="" class="relative w-full h-64 sm:h-80 md:h-auto max-h-[75vh] object-contain z-20 drop-shadow-2xl rounded-xl" loading="lazy" referrerpolicy="no-referrer" onerror="this.style.display='none'">
+            <div id="viewRatingBadge" class="absolute bottom-6 left-6 flex items-center gap-1.5 text-2xl font-black text-yellow-400 bg-gray-900/90 px-4 py-1.5 rounded-xl backdrop-blur-md hidden shadow-2xl border border-yellow-500/30 z-30">
+                <i class="ph-fill ph-star"></i><span id="viewRating"></span>
+            </div>
+        </div>
+
+        <div class="p-6 md:p-10 flex flex-col flex-grow overflow-y-auto hide-scrollbar bg-white dark:bg-ytGray/50 relative">
+            <div class="flex items-center gap-2 mb-4 flex-wrap">
+                <span id="viewType" class="inline-flex items-center gap-1 px-3 py-1 rounded-lg text-xs font-bold uppercase tracking-wider"></span>
+                <span id="viewStatus" class="inline-flex items-center gap-1 px-3 py-1 rounded-lg text-xs font-bold uppercase tracking-wider"></span>
+                <span id="viewIsTopBadge" class="text-yellow-700 bg-yellow-100 dark:bg-yellow-900/30 dark:text-yellow-400 px-3 py-1 rounded-lg text-xs font-bold uppercase tracking-wider hidden border border-yellow-200 dark:border-yellow-700/50"><i class="ph-fill ph-trophy mr-1"></i>Топ</span>
+            </div>
+
+            <h2 id="viewTitle" class="text-3xl md:text-5xl font-black text-gray-900 dark:text-white mb-6 leading-tight tracking-tight"></h2>
+            
+            <div class="flex flex-wrap items-center gap-5 text-sm text-gray-600 dark:text-gray-300 mb-8 font-semibold bg-gray-50 dark:bg-black/30 p-5 rounded-2xl border border-gray-100 dark:border-white/5">
+                <span id="viewYearWrap" class="flex items-center gap-2"><i class="ph-bold ph-calendar-blank text-gray-400 text-xl"></i> <span id="viewYear"></span></span>
+                <span id="viewDurationWrap" class="flex items-center gap-2 hidden"><i class="ph-bold ph-clock text-gray-400 text-xl"></i> <span id="viewDuration"></span></span>
+                <span id="viewDirectorWrap" class="flex items-center gap-2 hidden w-full sm:w-auto mt-2 sm:mt-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-gray-200 dark:border-white/10"><i class="ph-bold ph-video-camera text-gray-400 text-xl"></i> <span id="viewDirector" class="truncate max-w-[250px]"></span></span>
+            </div>
+
+            <div class="space-y-8 flex-grow">
+                <div id="viewGenresWrap" class="hidden">
+                    <p class="text-xs text-gray-400 dark:text-ytLightGray uppercase tracking-widest font-bold mb-3">Жанры</p>
+                    <div id="viewGenres" class="flex flex-wrap gap-2"></div>
+                </div>
+
+                <div id="viewCommentWrap" class="hidden">
+                    <p class="text-xs text-gray-400 dark:text-ytLightGray uppercase tracking-widest font-bold mb-3">Комментарий</p>
+                    <p id="viewComment" class="text-gray-700 dark:text-gray-300 italic bg-ytGreen/10 p-5 rounded-2xl border border-ytGreen/20 leading-relaxed text-sm"></p>
+                </div>
+                
+                <div id="viewSeasonsWrap" class="hidden mt-6">
+                    <p class="text-xs text-gray-400 dark:text-ytLightGray uppercase tracking-widest font-bold mb-3 flex items-center gap-2"><i class="ph-fill ph-stack"></i> Сезоны</p>
+                    <div id="viewSeasonsList" class="flex flex-col gap-2"></div>
+                </div>
+            </div>
+
+            <div id="viewLinksWrap" class="hidden flex flex-col sm:flex-row gap-3 pt-8 mt-8 border-t border-gray-100 dark:border-white/10">
+                <a id="viewLink1" href="#" target="_blank" class="hidden flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-6 py-3 bg-[#f50] hover:bg-[#ff661a] text-white rounded-xl font-bold transition-all shadow-md hover:shadow-lg text-sm whitespace-nowrap min-w-[160px]"></a>
+                <a id="viewLink2" href="#" target="_blank" class="hidden flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-6 py-3 bg-[#f5c518] hover:bg-[#e3b516] text-black rounded-xl font-bold transition-all shadow-md hover:shadow-lg text-sm whitespace-nowrap min-w-[160px]"></a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ✏️ ФОРМА записи (добавить / изменить). id полей itemTitle, itemYear… используются в app.js — не переименовывай -->
+<div id="itemModal" class="fixed inset-0 bg-gray-900/80 hidden z-50 flex items-center justify-center p-4 opacity-0 transition-opacity duration-300 backdrop-blur-sm">
+    <div class="bg-white dark:bg-ytGray rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden transform scale-95 transition-transform duration-300 max-h-[95vh] flex flex-col border border-gray-200 dark:border-white/10" id="modalContent">
+        
+        <div class="px-6 py-5 border-b border-gray-100 dark:border-white/10 flex justify-between items-center bg-gray-50/50 dark:bg-ytBlack flex-shrink-0">
+            <h2 class="text-xl font-black text-gray-900 dark:text-white tracking-tight" id="modalTitle">Добавить запись</h2>
+            <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600 dark:hover:text-white transition-colors p-1 bg-white dark:bg-ytGray rounded-full shadow-sm border border-gray-200 dark:border-white/10">
+                <i class="ph-bold ph-x text-lg"></i>
+            </button>
+        </div>
+        
+        <div class="p-6 overflow-y-auto hide-scrollbar">
+            <form id="itemForm" class="space-y-6">
+                <input type="hidden" id="itemId">
+                
+                <div>
+                    <label class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Название *</label>
+                    <div class="flex gap-2">
+                        <input type="text" id="itemTitle" required class="w-full px-4 py-3 bg-gray-50 dark:bg-black/30 border border-gray-200 dark:border-white/10 rounded-xl focus:ring-1 focus:ring-ytGreen dark:text-white outline-none transition-colors font-medium">
+                        <button type="button" id="magicWandBtn" onclick="autoFillData()" class="bg-ytGreen/20 hover:bg-ytGreen/30 text-ytGreen px-4 py-3 rounded-xl font-bold transition-colors flex items-center justify-center shrink-0 w-12" title="Найти на Кинопоиске">
+                            <i class="ph-bold ph-magic-wand text-xl"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                    <div>
+                        <label class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Тип *</label>
+                        <select id="itemType" required class="w-full px-4 py-3 bg-gray-50 dark:bg-black/30 border border-gray-200 dark:border-white/10 rounded-xl focus:ring-1 focus:ring-ytGreen dark:text-white outline-none appearance-none">
+                            <option value="movie">Фильм</option>
+                            <option value="series">Сериал</option>
+                            <option value="cartoon">Мультфильм</option>
+                            <option value="game">Игра</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Статус *</label>
+                        <select id="itemStatus" required class="w-full px-4 py-3 bg-gray-50 dark:bg-black/30 border border-gray-200 dark:border-white/10 rounded-xl focus:ring-1 focus:ring-ytGreen dark:text-white outline-none appearance-none">
+                            <option value="watched">Просмотрено / Пройдено</option>
+                            <option value="planning">В планах</option>
+                            <option value="watching">В процессе</option>
+                            <option value="dropped">Брошено</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-5">
+                    <div>
+                        <label class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Оценка (0-10)</label>
+                        <input type="number" id="itemRating" min="0" max="10" step="0.1" placeholder="8.5" class="w-full px-4 py-3 bg-gray-50 dark:bg-black/30 border border-gray-200 dark:border-white/10 rounded-xl focus:ring-1 focus:ring-ytGreen dark:text-white outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Год</label>
+                        <input type="number" id="itemYear" min="1900" max="2100" placeholder="2023" class="w-full px-4 py-3 bg-gray-50 dark:bg-black/30 border border-gray-200 dark:border-white/10 rounded-xl focus:ring-1 focus:ring-ytGreen dark:text-white outline-none">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                    <div>
+                        <label class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Длительность (мин)</label>
+                        <input type="number" id="itemDuration" min="0" placeholder="120" class="w-full px-4 py-3 bg-gray-50 dark:bg-black/30 border border-gray-200 dark:border-white/10 rounded-xl focus:ring-1 focus:ring-ytGreen dark:text-white outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Режиссер / Студия</label>
+                        <input type="text" id="itemDirector" placeholder="Кристофер Нолан..." class="w-full px-4 py-3 bg-gray-50 dark:bg-black/30 border border-gray-200 dark:border-white/10 rounded-xl focus:ring-1 focus:ring-ytGreen dark:text-white outline-none">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-3">Жанры (несколько)</label>
+                    <div id="genresSelection" class="flex flex-wrap gap-2"></div>
+                    <input type="hidden" id="itemLegacyGenre">
+                </div>
+
+                <div class="bg-yellow-50 dark:bg-yellow-900/10 border border-yellow-200 dark:border-yellow-700/30 p-4 rounded-xl flex items-start gap-3">
+                    <input type="checkbox" id="itemIsTop" class="mt-1 w-5 h-5 text-yellow-600 rounded bg-white dark:bg-black/30 border-yellow-300 dark:border-yellow-700 focus:ring-yellow-500 cursor-pointer">
+                    <label for="itemIsTop" class="text-sm font-bold text-yellow-800 dark:text-yellow-500 cursor-pointer select-none leading-tight">
+                        Добавить в "Лучшее" принудительно<br>
+                        <span class="text-xs font-medium text-yellow-600 dark:text-yellow-600/70">Появится в топе, даже если оценка ниже 7.5</span>
+                    </label>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">URL постера</label>
+                    <input type="url" id="itemPoster" placeholder="https://..." class="w-full px-4 py-3 bg-gray-50 dark:bg-black/30 border border-gray-200 dark:border-white/10 rounded-xl focus:ring-1 focus:ring-ytGreen dark:text-white outline-none">
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                    <div>
+                        <label id="labelLink1" class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Ссылка Кинопоиск</label>
+                        <input type="url" id="itemKpUrl" placeholder="https://..." class="w-full px-4 py-3 bg-gray-50 dark:bg-black/30 border border-gray-200 dark:border-white/10 rounded-xl focus:ring-1 focus:ring-ytGreen dark:text-white outline-none">
+                    </div>
+                    <div>
+                        <label id="labelLink2" class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Ссылка IMDb</label>
+                        <input type="url" id="itemImdbUrl" placeholder="https://..." class="w-full px-4 py-3 bg-gray-50 dark:bg-black/30 border border-gray-200 dark:border-white/10 rounded-xl focus:ring-1 focus:ring-ytGreen dark:text-white outline-none">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Комментарий</label>
+                    <textarea id="itemComment" rows="2" class="w-full px-4 py-3 bg-gray-50 dark:bg-black/30 border border-gray-200 dark:border-white/10 rounded-xl focus:ring-1 focus:ring-ytGreen dark:text-white outline-none resize-none"></textarea>
+                </div>
+
+                <div class="pt-6 flex gap-3 justify-end border-t border-gray-100 dark:border-white/10">
+                    <button type="button" onclick="closeModal()" class="px-6 py-3 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-ytBlack hover:bg-gray-200 dark:hover:bg-black/80 rounded-xl font-bold transition-colors">Отмена</button>
+                    <button type="submit" class="px-6 py-3 text-white bg-ytGreen hover:bg-ytGreenHover rounded-xl font-bold shadow-md transition-colors flex items-center gap-2">
+                        <i class="ph-bold ph-floppy-disk"></i> Сохранить
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- ✏️ ФОРМА видео -->
+<div id="youtubeModal" class="fixed inset-0 bg-gray-900/90 hidden z-50 flex items-center justify-center p-4 opacity-0 transition-opacity duration-300 backdrop-blur-sm">
+    <div class="bg-white dark:bg-ytGray rounded-3xl shadow-2xl w-full max-w-4xl overflow-hidden transform scale-95 transition-transform duration-300 flex flex-col border border-gray-200 dark:border-white/10" id="youtubeModalContent">
+        
+        <div class="px-6 py-5 border-b border-gray-100 dark:border-white/10 flex justify-between items-center bg-gray-50/50 dark:bg-ytBlack flex-shrink-0">
+            <h2 class="text-xl font-black text-gray-900 dark:text-white flex items-center gap-2 uppercase tracking-wide"><span id="ytModalTitle">Предложить видео</span></h2>
+            <button onclick="closeYoutubeModal()" class="text-gray-400 hover:text-gray-600 dark:hover:text-white transition-colors p-1 bg-white dark:bg-ytGray rounded-full shadow-sm border border-gray-200 dark:border-white/10">
+                <i class="ph-bold ph-x text-lg"></i>
+            </button>
+        </div>
+        
+        <div class="p-6 md:p-8 overflow-y-auto hide-scrollbar">
+            <form id="youtubeForm" class="flex flex-col md:flex-row gap-8">
+                <input type="hidden" id="ytItemId">
+                <input type="hidden" id="ytTitle">
+                <input type="hidden" id="ytChannel">
+                <input type="hidden" id="ytDuration">
+                <input type="hidden" id="ytThumbnailUrl">
+                
+                <div class="w-full md:w-5/12 flex flex-col gap-4">
+                    <div class="relative w-full aspect-video bg-gray-100 dark:bg-black/50 rounded-2xl overflow-hidden border border-gray-200 dark:border-white/10 flex items-center justify-center shadow-inner">
+                        <img id="ytPreviewImg" src="" class="absolute inset-0 w-full h-full object-cover hidden">
+                        <div id="ytPreviewPlaceholder" class="text-gray-400 dark:text-gray-600 flex flex-col items-center">
+                            <i class="ph-fill ph-youtube-logo text-5xl mb-2"></i>
+                            <span class="text-xs font-bold uppercase tracking-widest">Превью видео</span>
+                        </div>
+                    </div>
+                    
+                    <div id="ytAutoData" class="hidden flex-col gap-1 px-2">
+                        <h4 id="ytAutoTitle" class="text-sm font-bold text-gray-900 dark:text-white line-clamp-2"></h4>
+                        <div class="flex items-center gap-2 text-xs font-semibold text-gray-500">
+                            <span id="ytAutoChannel"></span>
+                            <span class="w-1 h-1 rounded-full bg-gray-400"></span>
+                            <span id="ytAutoDuration"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="w-full md:w-7/12 flex flex-col space-y-6">
+                    <div>
+                        <label class="block text-sm font-bold text-gray-700 dark:text-ytLightGray mb-2">Ссылка на видео</label>
+                        <div class="relative">
+                            <input type="url" id="ytUrl" required oninput="fetchYoutubeData(this.value)" placeholder="https://www.youtube.com/watch?v=..." class="w-full px-4 py-3.5 bg-gray-50 dark:bg-black/30 border border-gray-200 dark:border-white/10 rounded-xl focus:ring-1 focus:ring-ytGreen dark:text-white outline-none font-medium">
+                            <button type="button" id="ytPriorityToggle" onclick="toggleYtPriority()" class="absolute right-3 top-1/2 transform -translate-y-1/2 p-1.5 text-gray-400 hover:text-yellow-500 transition-colors" title="Отметить как важное (Приоритет)">
+                                <i class="ph-fill ph-star text-2xl priority-star"></i>
+                            </button>
+                        </div>
+                        <input type="hidden" id="ytIsPriority" value="false">
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-bold text-gray-700 dark:text-ytLightGray mb-3">Категория</label>
+                        <div class="flex flex-wrap gap-2" id="ytCategorySelection">
+                        </div>
+                    </div>
+
+                    <div class="flex-grow flex flex-col">
+                        <label class="block text-sm font-bold text-gray-700 dark:text-ytLightGray mb-2">Комментарий <span class="text-xs font-normal opacity-60">[не обязательно]</span></label>
+                        <textarea id="ytComment" rows="3" placeholder="Добавить комментарий..." class="w-full flex-grow px-4 py-3 bg-gray-50 dark:bg-black/30 border border-gray-200 dark:border-white/10 rounded-xl focus:ring-1 focus:ring-ytGreen dark:text-white outline-none resize-none font-medium text-sm"></textarea>
+                    </div>
+
+                    <button type="submit" class="w-full py-4 text-white bg-ytGreen hover:bg-ytGreenHover rounded-xl font-bold shadow-md transition-colors text-base uppercase tracking-wider">
+                        Отправить
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- ⚙️ Настройки: ссылки на соцсети в шапке -->
+<div id="settingsModal" class="fixed inset-0 bg-gray-900/80 hidden z-[60] flex items-center justify-center p-4 opacity-0 transition-opacity duration-300 backdrop-blur-sm">
+    <div class="bg-white dark:bg-ytGray rounded-3xl shadow-2xl w-full max-w-md overflow-hidden transform scale-95 transition-transform duration-300 border border-gray-200 dark:border-white/10" id="settingsContent">
+        <div class="px-6 py-5 border-b border-gray-100 dark:border-white/10 flex justify-between items-center bg-gray-50/50 dark:bg-ytBlack">
+            <h2 class="text-xl font-black text-gray-900 dark:text-white flex items-center gap-2"><i class="ph-fill ph-gear text-ytGreen"></i> Настройки</h2>
+            <button onclick="closeSettingsModal()" class="text-gray-400 hover:text-white transition-colors p-1"><i class="ph-bold ph-x text-lg"></i></button>
+        </div>
+        <div class="p-6">
+            <form id="settingsForm" class="space-y-5">
+                <div>
+                    <label class="block text-sm font-bold text-gray-700 dark:text-ytLightGray mb-2 flex items-center gap-2"><img src="https://s2.googleusercontent.com/s2/favicons?domain=shikimori.one&sz=32" class="w-4 h-4 rounded-sm grayscale"> Shikimori</label>
+                    <input type="url" id="settingShiki" class="w-full px-4 py-3 bg-gray-50 dark:bg-black/30 border border-gray-200 dark:border-white/10 rounded-xl text-gray-900 dark:text-white outline-none focus:ring-1 focus:ring-ytGreen">
+                </div>
+                <div>
+                    <label class="block text-sm font-bold text-gray-700 dark:text-ytLightGray mb-2 flex items-center gap-2"><i class="ph-fill ph-telegram-logo text-blue-500"></i> Telegram профиль</label>
+                    <input type="url" id="settingTgProfile" class="w-full px-4 py-3 bg-gray-50 dark:bg-black/30 border border-gray-200 dark:border-white/10 rounded-xl text-gray-900 dark:text-white outline-none focus:ring-1 focus:ring-ytGreen">
+                </div>
+                <div>
+                    <label class="block text-sm font-bold text-gray-700 dark:text-ytLightGray mb-2 flex items-center gap-2"><i class="ph-fill ph-users text-blue-400"></i> Telegram канал</label>
+                    <input type="url" id="settingTgChannel" class="w-full px-4 py-3 bg-gray-50 dark:bg-black/30 border border-gray-200 dark:border-white/10 rounded-xl text-gray-900 dark:text-white outline-none focus:ring-1 focus:ring-ytGreen">
+                </div>
+                <button type="submit" class="w-full px-6 py-3 text-white bg-ytGreen hover:bg-ytGreenHover rounded-xl font-bold mt-4 transition-colors">Сохранить</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- 🔐 Окно входа -->
+<div id="passwordModal" class="fixed inset-0 bg-gray-900/80 hidden z-[70] flex items-center justify-center p-4 opacity-0 transition-opacity duration-200 backdrop-blur-sm">
+    <div class="bg-white dark:bg-ytGray rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden transform scale-95 transition-transform duration-200 border border-gray-200 dark:border-white/10 p-6 text-center" id="passwordContent">
+        <div class="w-16 h-16 bg-ytGreen/20 text-ytGreen rounded-full flex items-center justify-center mx-auto mb-4">
+            <i class="ph-fill ph-lock-key text-3xl"></i>
+        </div>
+        <h2 class="text-xl font-black text-gray-900 dark:text-white mb-2">Вход</h2>
+        <input type="password" id="passwordInput" placeholder="••••••••" class="w-full px-4 py-3 bg-gray-50 dark:bg-black/30 border border-gray-200 dark:border-white/10 rounded-xl text-center font-bold tracking-widest text-gray-900 dark:text-white outline-none mb-4 mt-4 focus:ring-1 focus:ring-ytGreen">
+        <p id="passwordError" class="text-red-500 text-sm font-bold hidden mb-4">Неверный пароль!</p>
+        <div class="flex gap-3">
+            <button onclick="closePasswordModal()" class="flex-1 py-3 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-ytBlack hover:bg-gray-200 dark:hover:bg-black/80 rounded-xl font-bold transition-colors">Отмена</button>
+            <button onclick="submitPassword()" class="flex-1 py-3 text-white bg-ytGreen hover:bg-ytGreenHover rounded-xl font-bold transition-colors">Войти</button>
+        </div>
+    </div>
+</div>
+
+<!-- 🗑 Подтверждение удаления -->
+<div id="confirmModal" class="fixed inset-0 bg-gray-900/80 hidden z-[70] flex items-center justify-center p-4 opacity-0 transition-opacity duration-200 backdrop-blur-sm">
+    <div class="bg-white dark:bg-ytGray rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden transform scale-95 transition-transform duration-200 border border-gray-200 dark:border-white/10 p-6 text-center" id="confirmContent">
+        <div class="w-16 h-16 bg-red-100 dark:bg-red-900/30 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
+            <i class="ph-fill ph-warning text-3xl"></i>
+        </div>
+        <h2 class="text-xl font-black text-gray-900 dark:text-white mb-2">Удалить запись?</h2>
+        <div class="flex gap-3 mt-6">
+            <button onclick="closeConfirmModal()" class="flex-1 py-3 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-ytBlack hover:bg-gray-200 dark:hover:bg-black/80 rounded-xl font-bold transition-colors">Отмена</button>
+            <button id="confirmBtn" class="flex-1 py-3 text-white bg-red-600 hover:bg-red-700 rounded-xl font-bold transition-colors">Удалить</button>
+        </div>
+    </div>
+</div>
+
+<!-- 🔢 Правка счётчика просмотренных видео -->
+<div id="editYtCountModal" class="fixed inset-0 bg-gray-900/80 hidden z-[70] flex items-center justify-center p-4 opacity-0 transition-opacity duration-200 backdrop-blur-sm">
+    <div class="bg-white dark:bg-ytGray rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden transform scale-95 transition-transform duration-200 border border-gray-200 dark:border-white/10 p-6 text-center" id="editYtCountContent">
+        <div class="w-16 h-16 bg-ytGreen/20 text-ytGreen rounded-full flex items-center justify-center mx-auto mb-4">
+            <i class="ph-fill ph-monitor-play text-3xl"></i>
+        </div>
+        <h2 class="text-xl font-black text-gray-900 dark:text-white mb-2">Счетчик видео</h2>
+        <p class="text-sm text-gray-500 dark:text-ytLightGray mb-5 font-medium">Введите общее количество просмотренных роликов на YouTube</p>
+        <input type="number" id="ytCountInput" min="0" class="w-full px-4 py-3 bg-gray-50 dark:bg-black/30 border border-gray-200 dark:border-white/10 rounded-xl text-center font-black text-2xl text-gray-900 dark:text-white outline-none mb-6 focus:ring-1 focus:ring-ytGreen">
+        <div class="flex gap-3">
+            <button onclick="closeEditYtCountModal()" class="flex-1 py-3 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-ytBlack hover:bg-gray-200 dark:hover:bg-black/80 rounded-xl font-bold transition-colors">Отмена</button>
+            <button onclick="saveYtCount()" class="flex-1 py-3 text-white bg-ytGreen hover:bg-ytGreenHover rounded-xl font-bold transition-colors flex items-center justify-center gap-2">
+                <i class="ph-bold ph-floppy-disk"></i> Сохранить
+            </button>
+        </div>
+    </div>
+</div>
+
+
+<!-- ⚙️ Скрипты в конце: сначала ключи (config.js), потом логика (app.js). Открывать через сервер (Live Server), не двойным кликом -->
+<script src="js/config.js"></script>
+<script type="module" src="js/app.js"></script>
+</body>
+</html>
