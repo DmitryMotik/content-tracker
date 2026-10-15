@@ -24,7 +24,7 @@
     // 📄 Сколько карточек на одной странице
     const ITEMS_PER_PAGE = 48;
     
-    let currentFilters = { type: 'all', status: 'all', search: '', genre: '', director: '', year: '', bestOnly: false };
+    let currentFilters = { type: 'all', status: 'all', search: '', genre: '', director: '', year: '', bestOnly: false, sort: 'title' };
     let ytFilters = { category: 'all', search: '', priorityOnly: false };
     
     let isAdmin = false;
@@ -134,14 +134,6 @@
 
                 onSnapshot(settingsDocRef, (docSnap) => {
                     if (docSnap.exists()) updateSocialLinksUI(docSnap.data());
-                });
-
-                onSnapshot(statsDocRef, (docSnap) => {
-                    if (docSnap.exists()) {
-                        const data = docSnap.data();
-                        currentYtWatchedCount = data.youtubeWatchedCount || 0;
-                        document.getElementById('ytWatchedCountDisplay').textContent = currentYtWatchedCount.toLocaleString('ru-RU');
-                    }
                 });
             }).catch((error) => {
                  console.error("Ошибка Firebase Auth:", error);
@@ -432,8 +424,50 @@
         return grouped;
     }
 
+    // 📊 Статистика над фильтрами: считает записи и плавно «докручивает» цифры
+    function updateStats() {
+        const rated = contentData.filter(i => i.rating);
+        const vals = {
+            total: contentData.length,
+            watched: contentData.filter(i => i.status === 'watched').length,
+            planning: contentData.filter(i => i.status === 'planning').length,
+            avg: rated.length ? rated.reduce((s, i) => s + i.rating, 0) / rated.length : 0
+        };
+        document.querySelectorAll('[data-stat]').forEach(el => {
+            const to = vals[el.dataset.stat], from = parseFloat(el.dataset.v || 0);
+            if (to === from) return;
+            el.dataset.v = to;
+            const t0 = performance.now();
+            const tick = t => {
+                const k = Math.min((t - t0) / 700, 1), v = from + (to - from) * (1 - Math.pow(1 - k, 3));
+                el.textContent = el.dataset.stat === 'avg' ? v.toFixed(1) : Math.round(v);
+                if (k < 1) requestAnimationFrame(tick);
+            };
+            requestAnimationFrame(tick);
+        });
+    }
+
+    // 🎲 «Что смотреть?»: перебирает названия из «В планах» и открывает случайное
+    window.pickRandom = function() {
+        const all = groupSeasons(contentData);
+        const planned = all.filter(i => i.status === 'planning');
+        const list = planned.length ? planned : all;   // если «В планах» пусто — выбираем из всего
+        if (!list.length) return;
+        const label = document.querySelector('#btnRandom span');
+        let n = 0;
+        const timer = setInterval(() => {
+            label.textContent = list[Math.floor(Math.random() * list.length)].title;
+            if (++n > 10) {
+                clearInterval(timer);
+                label.textContent = 'Что смотреть?';
+                window.openViewModal(list[Math.floor(Math.random() * list.length)].id);
+            }
+        }, 80);
+    };
+
     // 🎬 РИСУЕТ карточки кино/игр. Разметка карточки — card.innerHTML ниже. Порог «Лучшего»: рейтинг >= 7.5
     function renderGrid() {
+        updateStats();
         const grid = document.getElementById('contentGrid');
         const emptyState = document.getElementById('emptyState');
         const pagControls = document.getElementById('paginationControls');
@@ -474,8 +508,8 @@
         grid.classList.remove('hidden');
         emptyState.classList.add('hidden');
 
-        if (currentFilters.bestOnly) filteredData.sort((a, b) => (b.rating || 0) - (a.rating || 0));
-        else filteredData.sort((a, b) => a.title.localeCompare(b.title));
+        const s = currentFilters.bestOnly && currentFilters.sort === 'title' ? 'rating' : currentFilters.sort; // «Лучшее» по умолчанию сортируется по оценке
+        filteredData.sort((a, b) => s === 'rating' ? (b.rating || 0) - (a.rating || 0) : s === 'year' ? (b.year || 0) - (a.year || 0) : a.title.localeCompare(b.title, 'ru'));
 
         const totalPages = Math.ceil(filteredData.length / ITEMS_PER_PAGE);
         if (currentPage > totalPages) currentPage = Math.max(1, totalPages);
@@ -1257,34 +1291,6 @@
         setTimeout(() => { confirmModal.classList.add('hidden'); itemToDeleteId = null; }, 200);
     }
 
-    const editYtCountModal = document.getElementById('editYtCountModal');
-    
-    window.openEditYtCountModal = function() {
-        if (!isAdmin) return;
-        document.body.classList.add('modal-open');
-        document.getElementById('ytCountInput').value = currentYtWatchedCount;
-        editYtCountModal.classList.remove('hidden');
-        setTimeout(() => { editYtCountModal.classList.remove('opacity-0'); editYtCountModal.children[0].classList.remove('scale-95'); }, 10);
-    }
-
-    window.closeEditYtCountModal = function() {
-        document.body.classList.remove('modal-open');
-        editYtCountModal.classList.add('opacity-0');
-        editYtCountModal.children[0].classList.add('scale-95');
-        setTimeout(() => editYtCountModal.classList.add('hidden'), 200);
-    }
-
-    window.saveYtCount = async function() {
-        if (!isAdmin || !auth.currentUser) return;
-        const val = parseInt(document.getElementById('ytCountInput').value) || 0;
-        try {
-            await setDoc(statsDocRef, { youtubeWatchedCount: val }, { merge: true });
-            closeEditYtCountModal();
-        } catch (e) {
-            console.error("Ошибка сохранения счетчика:", e);
-        }
-    }
-
     document.getElementById('confirmBtn').addEventListener('click', async () => {
         if (!isAdmin || !auth.currentUser || !itemToDeleteId) return;
         try {
@@ -1385,10 +1391,26 @@
     // Esc закрывает верхнее открытое окно; клик мимо закрывает выпадающий список жанров
     document.addEventListener('keydown', e => {
         if (e.key !== 'Escape') return;
-        const open = [['confirmModal','closeConfirmModal'],['editYtCountModal','closeEditYtCountModal'],['passwordModal','closePasswordModal'],['settingsModal','closeSettingsModal'],['youtubeModal','closeYoutubeModal'],['itemModal','closeModal'],['viewModal','closeViewModal']]
+        const open = [['confirmModal','closeConfirmModal'],['passwordModal','closePasswordModal'],['settingsModal','closeSettingsModal'],['youtubeModal','closeYoutubeModal'],['itemModal','closeModal'],['viewModal','closeViewModal']]
             .find(([id]) => !document.getElementById(id).classList.contains('hidden'));
         if (open) window[open[1]]();
     });
     document.addEventListener('click', () => closeAllCustomSelects());
+
+
+    // ✨ Блик и лёгкий наклон карточки за курсором (стили — css/style.css, раздел 8)
+    ['contentGrid', 'youtubeGrid'].forEach(id => document.getElementById(id).addEventListener('pointermove', e => {
+        const c = e.target.closest('.card-transition'); if (!c) return;
+        const r = c.getBoundingClientRect(), x = (e.clientX - r.left) / r.width, y = (e.clientY - r.top) / r.height;
+        c.style.setProperty('--mx', x * 100 + '%'); c.style.setProperty('--my', y * 100 + '%');
+        c.style.setProperty('--rx', (0.5 - y) * 6 + 'deg'); c.style.setProperty('--ry', (x - 0.5) * 6 + 'deg');
+    }));
+    document.getElementById('sortSelect').addEventListener('change', e => { currentFilters.sort = e.target.value; currentPage = 1; renderGrid(); });
+    // ⌨️ Клавиша «/» — фокус на поиск
+    document.addEventListener('keydown', e => {
+        if (e.key !== '/' || /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)) return;
+        e.preventDefault();
+        document.getElementById(innerWidth >= 768 ? 'globalSearchInput' : 'globalSearchInputMobile').focus();
+    });
 
     init();

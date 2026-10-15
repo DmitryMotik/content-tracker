@@ -41,7 +41,7 @@
         <div class="w-full max-w-2xl relative flex-shrink hidden md:block">
             <i class="ph-bold ph-magnifying-glass absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
             <!-- 🔎 Поиск (ПК). Для телефона есть второй — globalSearchInputMobile -->
-            <input type="text" id="globalSearchInput" placeholder="Поиск..." class="w-full pl-11 pr-4 py-2.5 bg-gray-100 dark:bg-ytGray border border-transparent focus:border-gray-300 dark:focus:border-ytGreen rounded-xl focus:ring-0 dark:text-white outline-none transition-all text-sm font-medium placeholder-gray-500">
+            <input type="text" id="globalSearchInput" placeholder="Поиск… (нажми /)" class="w-full pl-11 pr-4 py-2.5 bg-gray-100 dark:bg-ytGray border border-transparent focus:border-gray-300 dark:focus:border-ytGreen rounded-xl focus:ring-0 dark:text-white outline-none transition-all text-sm font-medium placeholder-gray-500">
         </div>
 
         <div class="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end shrink-0">
@@ -79,9 +79,16 @@
         <!-- Поиск для мобилок -->
         <div class="w-full relative flex-shrink md:hidden mb-4">
             <i class="ph-bold ph-magnifying-glass absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
-            <input type="text" id="globalSearchInputMobile" placeholder="Поиск..." class="w-full pl-11 pr-4 py-2.5 bg-gray-100 dark:bg-ytGray border border-transparent focus:border-gray-300 dark:focus:border-ytGreen rounded-xl focus:ring-0 dark:text-white outline-none transition-all text-sm font-medium placeholder-gray-500">
+            <input type="text" id="globalSearchInputMobile" placeholder="Поиск… (нажми /)" class="w-full pl-11 pr-4 py-2.5 bg-gray-100 dark:bg-ytGray border border-transparent focus:border-gray-300 dark:focus:border-ytGreen rounded-xl focus:ring-0 dark:text-white outline-none transition-all text-sm font-medium placeholder-gray-500">
         </div>
 
+        <!-- 📊 СТАТИСТИКА: цифры считает updateStats() в app.js. Новая плитка = копия <div class="stat"> + строка в vals -->
+        <div id="statsStrip" class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+            <div class="stat"><b data-stat="total">0</b><span>Всего записей</span></div>
+            <div class="stat"><b data-stat="watched">0</b><span>Пройдено</span></div>
+            <div class="stat"><b data-stat="planning">0</b><span>В планах</span></div>
+            <div class="stat"><b data-stat="avg">0</b><span>Средняя оценка</span></div>
+        </div>
         <div class="flex flex-col xl:flex-row gap-4 justify-between items-start xl:items-center mb-6 bg-gray-100 dark:bg-ytGray/40 p-4 rounded-2xl border border-gray-200 dark:border-white/5">
             <div class="flex gap-2 overflow-x-auto hide-scrollbar w-full xl:w-auto pb-1">
                 <!-- 🎛 Фильтры по типу. Новый — скопируй кнопку, поменяй data-value и название (+ TYPE_CONFIG в app.js) -->
@@ -100,6 +107,9 @@
                 <button onclick="setFilter('status', 'all')" class="filter-btn status-filter active px-4 py-2 rounded-xl text-xs sm:text-sm font-bold whitespace-nowrap bg-ytGreen/20 text-ytGreen dark:bg-ytGreen/20 dark:text-ytGreen" data-value="all">Любой статус</button>
                 <button onclick="setFilter('status', 'watched')" class="filter-btn status-filter px-4 py-2 rounded-xl text-xs sm:text-sm font-bold whitespace-nowrap bg-white text-gray-600 border border-gray-200 hover:bg-gray-50 dark:bg-ytGray dark:border-white/10 dark:text-gray-300 dark:hover:bg-ytGray/80" data-value="watched">Пройдено</button>
                 <button onclick="setFilter('status', 'planning')" class="filter-btn status-filter px-4 py-2 rounded-xl text-xs sm:text-sm font-bold whitespace-nowrap bg-white text-gray-600 border border-gray-200 hover:bg-gray-50 dark:bg-ytGray dark:border-white/10 dark:text-gray-300 dark:hover:bg-ytGray/80" data-value="planning">В планах</button>
+                <!-- 🎲 Случайный выбор из «В планах» (pickRandom в app.js) и 🔀 сортировка (sortSelect) -->
+                <button onclick="pickRandom()" id="btnRandom" class="flex items-center gap-1.5 px-4 py-2 rounded-xl font-bold text-xs sm:text-sm whitespace-nowrap bg-ytGreen text-white hover:bg-ytGreenHover transition-colors shadow-md"><i class="ph-bold ph-dice-five"></i><span class="max-w-[150px] truncate">Что смотреть?</span></button>
+                <select id="sortSelect" class="sort-select" title="Сортировка"><option value="title">По названию</option><option value="rating">По оценке</option><option value="year">Сначала новые</option></select>
                 <button onclick="toggleAdvancedFilters()" class="ml-auto flex items-center justify-center p-2 rounded-xl font-medium text-sm transition-all text-gray-600 bg-white border border-gray-200 hover:bg-gray-50 dark:bg-ytGray dark:border-white/10 dark:text-gray-300 dark:hover:bg-ytGray/80">
                     <i class="ph-bold ph-sliders-horizontal text-lg"></i>
                 </button>
@@ -153,21 +163,6 @@
     <!-- 📺 ВКЛАДКА «Видосы» -->
     <div id="youtubeContainer" class="hidden">
         
-        <div class="flex justify-between items-center bg-gray-100 dark:bg-ytGray/40 p-4 rounded-2xl border border-gray-200 dark:border-white/5 mb-6">
-            <div class="flex items-center gap-4">
-                <div class="w-12 h-12 rounded-full bg-ytGreen/20 flex items-center justify-center text-ytGreen shrink-0">
-                    <i class="ph-fill ph-monitor-play text-2xl"></i>
-                </div>
-                <div>
-                    <div class="text-xs font-bold text-gray-500 dark:text-ytLightGray uppercase tracking-wider">Просмотрено видео</div>
-                    <div id="ytWatchedCountDisplay" class="text-2xl font-black text-gray-900 dark:text-white leading-none mt-1">0</div>
-                </div>
-            </div>
-            <button onclick="openEditYtCountModal()" class="admin-only bg-white dark:bg-ytGray border border-gray-200 dark:border-white/10 hover:border-ytGreen text-gray-500 hover:text-ytGreen p-2.5 rounded-xl transition-colors shadow-sm">
-                <i class="ph-bold ph-pencil-simple text-xl"></i>
-            </button>
-        </div>
-
         <div class="flex gap-2 overflow-x-auto hide-scrollbar mb-6 pb-2 bg-gray-100 dark:bg-ytGray/40 p-4 rounded-2xl border border-gray-200 dark:border-white/5" id="ytFiltersContainer">
         </div>
 
@@ -486,25 +481,6 @@
         </div>
     </div>
 </div>
-
-<!-- 🔢 Правка счётчика просмотренных видео -->
-<div id="editYtCountModal" class="fixed inset-0 bg-gray-900/80 hidden z-[70] flex items-center justify-center p-4 opacity-0 transition-opacity duration-200 backdrop-blur-sm">
-    <div class="bg-white dark:bg-ytGray rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden transform scale-95 transition-transform duration-200 border border-gray-200 dark:border-white/10 p-6 text-center" id="editYtCountContent">
-        <div class="w-16 h-16 bg-ytGreen/20 text-ytGreen rounded-full flex items-center justify-center mx-auto mb-4">
-            <i class="ph-fill ph-monitor-play text-3xl"></i>
-        </div>
-        <h2 class="text-xl font-black text-gray-900 dark:text-white mb-2">Счетчик видео</h2>
-        <p class="text-sm text-gray-500 dark:text-ytLightGray mb-5 font-medium">Введите общее количество просмотренных роликов на YouTube</p>
-        <input type="number" id="ytCountInput" min="0" class="w-full px-4 py-3 bg-gray-50 dark:bg-black/30 border border-gray-200 dark:border-white/10 rounded-xl text-center font-black text-2xl text-gray-900 dark:text-white outline-none mb-6 focus:ring-1 focus:ring-ytGreen">
-        <div class="flex gap-3">
-            <button onclick="closeEditYtCountModal()" class="flex-1 py-3 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-ytBlack hover:bg-gray-200 dark:hover:bg-black/80 rounded-xl font-bold transition-colors">Отмена</button>
-            <button onclick="saveYtCount()" class="flex-1 py-3 text-white bg-ytGreen hover:bg-ytGreenHover rounded-xl font-bold transition-colors flex items-center justify-center gap-2">
-                <i class="ph-bold ph-floppy-disk"></i> Сохранить
-            </button>
-        </div>
-    </div>
-</div>
-
 
 <!-- ⚙️ Скрипты в конце: сначала ключи (config.js), потом логика (app.js). Открывать через сервер (Live Server), не двойным кликом -->
 <script src="js/config.js"></script>
