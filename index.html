@@ -82,12 +82,10 @@
             <input type="text" id="globalSearchInputMobile" placeholder="Поиск… (нажми /)" class="w-full pl-11 pr-4 py-2.5 bg-gray-100 dark:bg-ytGray border border-transparent focus:border-gray-300 dark:focus:border-ytGreen rounded-xl focus:ring-0 dark:text-white outline-none transition-all text-sm font-medium placeholder-gray-500">
         </div>
 
-        <!-- 📊 СТАТИСТИКА: цифры считает updateStats() в app.js. Новая плитка = копия <div class="stat"> + строка в vals -->
-        <div id="statsStrip" class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
-            <div class="stat"><b data-stat="total">0</b><span>Всего записей</span></div>
-            <div class="stat"><b data-stat="watched">0</b><span>Пройдено</span></div>
-            <div class="stat"><b data-stat="planning">0</b><span>В планах</span></div>
-            <div class="stat"><b data-stat="avg">0</b><span>Средняя оценка</span></div>
+        <!-- 📊 СТАТИСТИКА: две плитки, цифры и подписи зависят от выбранного раздела (фильмы / игры / ...). Считает updateStats() в app.js -->
+        <div id="statsStrip" class="grid grid-cols-2 gap-3 mb-6">
+            <div class="stat"><b data-stat="watched">0</b><span data-label="watched">Пройдено</span></div>
+            <div class="stat"><b data-stat="planning">0</b><span data-label="planning">В планах</span></div>
         </div>
         <div class="flex flex-col xl:flex-row gap-4 justify-between items-start xl:items-center mb-6 bg-gray-100 dark:bg-ytGray/40 p-4 rounded-2xl border border-gray-200 dark:border-white/5">
             <div class="flex gap-2 overflow-x-auto hide-scrollbar w-full xl:w-auto pb-1">

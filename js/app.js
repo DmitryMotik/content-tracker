@@ -424,32 +424,35 @@
         return grouped;
     }
 
-    // 📊 Статистика над фильтрами: считает записи и плавно «докручивает» цифры
+    // 🎲 Подпись кнопки-рандомайзера зависит от раздела
+    const randomLabel = () => ({ game: 'Во что играть?', movie: 'Какой фильм?', series: 'Какой сериал?', cartoon: 'Какой мультик?' }[currentFilters.type] || 'Что смотреть?');
+
+    // 📊 Статистика РАЗДЕЛА: считает только записи выбранного типа (type) и плавно докручивает цифры
     function updateStats() {
-        const rated = contentData.filter(i => i.rating);
-        const vals = {
-            total: contentData.length,
-            watched: contentData.filter(i => i.status === 'watched').length,
-            planning: contentData.filter(i => i.status === 'planning').length,
-            avg: rated.length ? rated.reduce((s, i) => s + i.rating, 0) / rated.length : 0
-        };
+        const t = currentFilters.type;
+        const list = groupSeasons(contentData).filter(i => t === 'all' || i.type === t);
+        const vals = { watched: list.filter(i => i.status === 'watched').length, planning: list.filter(i => i.status === 'planning').length };
+        const N = { movie: 'Фильмов', series: 'Сериалов', cartoon: 'Мультфильмов', game: 'Игр' }[t];
+        document.querySelector('[data-label="watched"]').textContent = N ? N + (t === 'game' ? ' пройдено' : ' просмотрено') : 'Пройдено и просмотрено';
+        document.querySelector('[data-label="planning"]').textContent = N ? N + ' в планах' : 'В планах';
+        document.querySelector('#btnRandom span').textContent = randomLabel();
         document.querySelectorAll('[data-stat]').forEach(el => {
             const to = vals[el.dataset.stat], from = parseFloat(el.dataset.v || 0);
             if (to === from) return;
             el.dataset.v = to;
             const t0 = performance.now();
-            const tick = t => {
-                const k = Math.min((t - t0) / 700, 1), v = from + (to - from) * (1 - Math.pow(1 - k, 3));
-                el.textContent = el.dataset.stat === 'avg' ? v.toFixed(1) : Math.round(v);
+            const tick = ts => {
+                const k = Math.min((ts - t0) / 700, 1);
+                el.textContent = Math.round(from + (to - from) * (1 - Math.pow(1 - k, 3)));
                 if (k < 1) requestAnimationFrame(tick);
             };
             requestAnimationFrame(tick);
         });
     }
 
-    // 🎲 «Что смотреть?»: перебирает названия из «В планах» и открывает случайное
+    // 🎲 Рандомайзер: перебирает названия из «В планах» ТЕКУЩЕГО раздела (на «Все форматы» — из всех) и открывает случайное
     window.pickRandom = function() {
-        const all = groupSeasons(contentData);
+        const all = groupSeasons(contentData).filter(i => currentFilters.type === 'all' || i.type === currentFilters.type); // только текущий раздел
         const planned = all.filter(i => i.status === 'planning');
         const list = planned.length ? planned : all;   // если «В планах» пусто — выбираем из всего
         if (!list.length) return;
@@ -459,7 +462,7 @@
             label.textContent = list[Math.floor(Math.random() * list.length)].title;
             if (++n > 10) {
                 clearInterval(timer);
-                label.textContent = 'Что смотреть?';
+                label.textContent = randomLabel();
                 window.openViewModal(list[Math.floor(Math.random() * list.length)].id);
             }
         }, 80);
@@ -997,6 +1000,7 @@
         document.getElementById('itemId').value = '';
         document.getElementById('itemLegacyGenre').value = '';
         selectedGenres = [];
+        if (currentFilters.type !== 'all') document.getElementById('itemType').value = currentFilters.type; // тип = текущий раздел
         updateFormForType(document.getElementById('itemType').value);
         document.getElementById('modalTitle').textContent = 'Добавить запись';
         modal.classList.remove('hidden');

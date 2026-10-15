@@ -6,9 +6,9 @@
    ===================================================================== */
 
 /* 1. ПЕРЕМЕННЫЕ — меняй цвета тут */
-:root { --accent:#e8403f; --accent-hover:#c92f2e; --bg:#f2f1f5; --line:rgba(23,20,26,.1);
+:root { --accent:#5b6cff; --accent-hover:#4655e6; --bg:#f3f4f8; --line:rgba(23,20,26,.1);
         --font-display:'Unbounded','Onest',sans-serif; }
-.dark { --bg:#0e0d13; --line:rgba(255,255,255,.09); }
+.dark { --bg:#0a0b10; --line:rgba(255,255,255,.09); }
 
 /* 2. БАЗА */
 html { scroll-behavior:smooth; }
@@ -18,7 +18,7 @@ h3 { font-weight:600 !important; }                       /* заголовки �
 .brand { font-weight:700; font-size:1.05rem; }            /* логотип «Трекер» */
 header.sticky { backdrop-filter:blur(14px); background:color-mix(in srgb, var(--bg) 82%, transparent) !important; }
 .card-transition { transition:transform .25s cubic-bezier(.2,.8,.2,1), box-shadow .25s, border-color .2s; }
-.card-transition:hover { transform:perspective(900px) translateY(-6px) rotateX(var(--rx,0deg)) rotateY(var(--ry,0deg)); box-shadow:0 18px 40px -18px rgba(232,64,63,.55); border-color:var(--accent) !important; }
+.card-transition:hover { transform:perspective(900px) translateY(-6px) rotateX(var(--rx,0deg)) rotateY(var(--ry,0deg)); box-shadow:0 18px 40px -18px rgba(91,108,255,.55); border-color:var(--accent) !important; }
 .hide-scrollbar::-webkit-scrollbar { display:none; }
 .hide-scrollbar { -ms-overflow-style:none; scrollbar-width:none; }
 ::-webkit-scrollbar { width:8px; } ::-webkit-scrollbar-track { background:transparent; }
@@ -47,7 +47,7 @@ body.is-admin .admin-only.inline-block-element { display:inline-block !important
 .custom-select-dropdown { position:absolute; top:100%; left:0; right:0; margin-top:.25rem; z-index:50; display:none;
   border-radius:.75rem; overflow-y:auto; max-height:250px; scrollbar-width:thin; background:#fff; border:1px solid #e5e7eb;
   box-shadow:0 10px 25px -5px rgba(0,0,0,.2); }
-.dark .custom-select-dropdown { background:#1a1823; border-color:rgba(255,255,255,.1); }
+.dark .custom-select-dropdown { background:#14151d; border-color:rgba(255,255,255,.1); }
 .custom-select-dropdown.show { display:block; animation:pop .15s ease-out; }
 .custom-select-option { padding:.5rem 1rem; cursor:pointer; }
 .custom-select-option:hover { background:#f3f4f6; } .dark .custom-select-option:hover { background:rgba(255,255,255,.06); }
@@ -78,7 +78,46 @@ body.is-admin .admin-only.inline-block-element { display:inline-block !important
 /* 10. СОРТИРОВКА, ФИЛЬТРЫ */
 .sort-select { padding:.5rem .75rem; border-radius:.75rem; font-size:.8rem; font-weight:700; cursor:pointer; outline:none;
   background:#fff; border:1px solid #e5e7eb; color:#4b5563; }
-.dark .sort-select { background:#1a1823; border-color:rgba(255,255,255,.1); color:#d1d5db; }
+.dark .sort-select { background:#14151d; border-color:rgba(255,255,255,.1); color:#d1d5db; }
 .filter-btn { transition:all .2s; }
 .filter-btn.active { box-shadow:inset 0 0 0 1px var(--accent); }
 #btnRandom span { transition:opacity .1s; }
+
+/* 11. НОВЫЙ ДИЗАЙН: слой поверх Tailwind (!important перебивает классы в разметке).
+   Хочешь откатить внешний вид — удали этот раздел целиком. */
+html body::before { content:''; position:fixed; inset:0; z-index:-1; pointer-events:none; background-size:28px 28px;
+  background-image:radial-gradient(rgba(127,127,160,.22) 1px, transparent 1.3px); mask-image:linear-gradient(#000, transparent 75%); }
+@keyframes prog { to { transform:scaleX(1); } }
+@keyframes drop { from { opacity:0; transform:translateY(-24px); } to { opacity:1; transform:none; } }
+@keyframes fade { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:none; } }
+@supports (animation-timeline:scroll()) {            /* полоска прокрутки сверху */
+  html body::after { content:''; position:fixed; inset:0 0 auto 0; height:3px; z-index:100; background:var(--accent);
+    transform:scaleX(0); transform-origin:0 50%; animation:prog linear both; animation-timeline:scroll(root); } }
+
+/* шапка — плавающая капсула, въезжает при загрузке */
+header.sticky { top:.75rem !important; width:calc(100% - 1.5rem); max-width:1560px; margin:.75rem auto 0; border:1px solid var(--line) !important;
+  border-radius:1.25rem; box-shadow:0 14px 40px -20px rgba(0,0,0,.6) !important; animation:drop .7s cubic-bezier(.2,.9,.3,1) both; }
+.brand i { filter:drop-shadow(0 0 10px var(--accent)); }
+
+/* вкладки — переключатель-сегмент */
+.tab-btn { border:0 !important; height:auto !important; padding:.55rem 1.1rem !important; border-radius:.85rem; transition:background .25s, color .25s, box-shadow .25s; }
+.tab-btn.active { background:var(--accent); color:#fff !important; box-shadow:0 10px 24px -10px var(--accent); }
+
+/* панели фильтров — стекло, фильтры — капсулы с подсветкой активного */
+#mainContainer > .rounded-2xl, #ytFiltersContainer { background:color-mix(in srgb, currentColor 5%, transparent) !important; border:1px solid var(--line) !important; backdrop-filter:blur(10px); }
+.filter-btn, #btnBest, #youtubeContainer button.rounded-full { border-radius:999px !important; }
+.filter-btn.active { background:var(--accent) !important; color:#fff !important; border-color:transparent !important; box-shadow:0 8px 20px -8px var(--accent); }
+.filter-btn:active, .tab-btn:active, #btnRandom:active { transform:scale(.96); }
+
+/* карточки и плитки статистики */
+.card-transition { border-radius:1.25rem !important; border-color:var(--line) !important; box-shadow:0 10px 30px -22px rgba(0,0,0,.7); }
+#contentGrid h3, #youtubeGrid h3 { font-size:.9rem; line-height:1.25; }
+.stat { position:relative; overflow:hidden; padding:1.25rem 1.5rem; border-radius:1.25rem; }
+.stat::before { content:''; position:absolute; left:0; top:22%; bottom:22%; width:3px; border-radius:3px; background:var(--accent); }
+.stat b { font-size:2.6rem; }
+#btnRandom { border-radius:999px; }
+
+/* окна: стекло + пружинистое появление; смена вкладок — плавное проявление */
+[id$="Modal"] { backdrop-filter:blur(10px) saturate(1.2); }
+[id$="Modal"] > div { border-radius:1.75rem !important; transition-timing-function:cubic-bezier(.2,.9,.3,1.25) !important; }
+#mainContainer, #youtubeContainer { animation:fade .45s cubic-bezier(.2,.8,.2,1) both; }
