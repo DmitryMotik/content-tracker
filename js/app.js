@@ -436,6 +436,8 @@
         document.querySelector('[data-label="watched"]').textContent = N ? N + (t === 'game' ? ' пройдено' : ' просмотрено') : 'Пройдено и просмотрено';
         document.querySelector('[data-label="planning"]').textContent = N ? N + ' в планах' : 'В планах';
         document.querySelector('#btnRandom span').textContent = randomLabel();
+        // Фильтр статуса: «Просмотрено» для фильмов/сериалов/мультфильмов, «Пройдено» для игр
+        document.querySelector('.status-filter[data-value="watched"]').textContent = t === 'game' ? 'Пройдено' : t === 'all' ? 'Просмотрено / Пройдено' : 'Просмотрено';
         document.querySelectorAll('[data-stat]').forEach(el => {
             const to = vals[el.dataset.stat], from = parseFloat(el.dataset.v || 0);
             if (to === from) return;
@@ -1001,6 +1003,7 @@
         document.getElementById('itemLegacyGenre').value = '';
         selectedGenres = [];
         if (currentFilters.type !== 'all') document.getElementById('itemType').value = currentFilters.type; // тип = текущий раздел
+        document.getElementById('itemStatus').value = 'planning'; // статус по умолчанию — «В планах»
         updateFormForType(document.getElementById('itemType').value);
         document.getElementById('modalTitle').textContent = 'Добавить запись';
         modal.classList.remove('hidden');

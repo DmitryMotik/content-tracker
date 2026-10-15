@@ -121,3 +121,6 @@ header.sticky { top:.75rem !important; width:calc(100% - 1.5rem); max-width:1560
 [id$="Modal"] { backdrop-filter:blur(10px) saturate(1.2); }
 [id$="Modal"] > div { border-radius:1.75rem !important; transition-timing-function:cubic-bezier(.2,.9,.3,1.25) !important; }
 #mainContainer, #youtubeContainer { animation:fade .45s cubic-bezier(.2,.8,.2,1) both; }
+
+/* 12. Панель доп. фильтров поднята над сеткой, иначе постеры перекрывают выпадающий список жанров */
+#advancedFilters { position:relative; z-index:30; }
